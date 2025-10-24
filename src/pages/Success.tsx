@@ -47,7 +47,7 @@ const Success = () => {
               <Sparkles className="w-8 h-8 text-secondary" />
             </h1>
             <p className="text-xl text-muted-foreground">
-              Your HighLevel Add-On has been successfully configured
+              Your Client Acquisition setup has been successfully configured
             </p>
           </div>
 

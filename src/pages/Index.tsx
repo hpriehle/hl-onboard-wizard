@@ -13,7 +13,7 @@ const Index = () => {
           {/* Logo/Brand */}
           <div className="inline-block">
             <h1 className="text-5xl sm:text-6xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
-              HighLevel Add-On
+              Client Acquisition
             </h1>
             <p className="text-xl text-muted-foreground">
               Powerful integrations for your HighLevel agency
