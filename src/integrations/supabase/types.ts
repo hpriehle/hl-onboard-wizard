@@ -45,6 +45,7 @@ export type Database = {
           "commio-password": string | null
           "commio-username": string | null
           companyId: string | null
+          companyName: string | null
           created_at: string
           customMenuLink: string | null
           "dc-recordingId1": string | null
@@ -54,12 +55,16 @@ export type Database = {
           "dropCowboy-apiKey": string | null
           "dropCowboy-brandId": string | null
           "dropCowboy-teamId": string | null
+          email: string | null
+          firstName: string | null
           id: number
           "instantly-apiKey": string | null
           instantlyCampaignId: string | null
           key: string | null
+          lastName: string | null
           nameTitle: string | null
           "openAI-apiKey": string | null
+          phone: string | null
           refresh_token: string | null
           reoonApiKey: string | null
           retell_apiKey: string | null
@@ -69,6 +74,8 @@ export type Database = {
           twilio_auth: string | null
           twilio_primarySID: string | null
           twilio_sid: string | null
+          website: string | null
+          whiteLabelDomain: string | null
         }
         Insert: {
           access_token?: string | null
@@ -76,6 +83,7 @@ export type Database = {
           "commio-password"?: string | null
           "commio-username"?: string | null
           companyId?: string | null
+          companyName?: string | null
           created_at?: string
           customMenuLink?: string | null
           "dc-recordingId1"?: string | null
@@ -85,12 +93,16 @@ export type Database = {
           "dropCowboy-apiKey"?: string | null
           "dropCowboy-brandId"?: string | null
           "dropCowboy-teamId"?: string | null
+          email?: string | null
+          firstName?: string | null
           id?: number
           "instantly-apiKey"?: string | null
           instantlyCampaignId?: string | null
           key?: string | null
+          lastName?: string | null
           nameTitle?: string | null
           "openAI-apiKey"?: string | null
+          phone?: string | null
           refresh_token?: string | null
           reoonApiKey?: string | null
           retell_apiKey?: string | null
@@ -100,6 +112,8 @@ export type Database = {
           twilio_auth?: string | null
           twilio_primarySID?: string | null
           twilio_sid?: string | null
+          website?: string | null
+          whiteLabelDomain?: string | null
         }
         Update: {
           access_token?: string | null
@@ -107,6 +121,7 @@ export type Database = {
           "commio-password"?: string | null
           "commio-username"?: string | null
           companyId?: string | null
+          companyName?: string | null
           created_at?: string
           customMenuLink?: string | null
           "dc-recordingId1"?: string | null
@@ -116,12 +131,16 @@ export type Database = {
           "dropCowboy-apiKey"?: string | null
           "dropCowboy-brandId"?: string | null
           "dropCowboy-teamId"?: string | null
+          email?: string | null
+          firstName?: string | null
           id?: number
           "instantly-apiKey"?: string | null
           instantlyCampaignId?: string | null
           key?: string | null
+          lastName?: string | null
           nameTitle?: string | null
           "openAI-apiKey"?: string | null
+          phone?: string | null
           refresh_token?: string | null
           reoonApiKey?: string | null
           retell_apiKey?: string | null
@@ -131,6 +150,8 @@ export type Database = {
           twilio_auth?: string | null
           twilio_primarySID?: string | null
           twilio_sid?: string | null
+          website?: string | null
+          whiteLabelDomain?: string | null
         }
         Relationships: []
       }
