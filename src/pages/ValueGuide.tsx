@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Mic, StopCircle, ArrowRight, Info, AlertCircle } from "lucide-react";
 import { RealtimeVoiceService } from "@/utils/RealtimeVoice";
+import { supabase } from "@/integrations/supabase/client";
 interface Section {
   id: number;
   title: string;
@@ -124,11 +125,27 @@ const ValueGuide = () => {
       handleSubmit(trimmedTranscript);
     }
   };
-  const handleSubmit = (finalTranscript: string) => {
+  const handleSubmit = async (finalTranscript: string) => {
     // Save all responses including the current one
     const allResponses = new Map(sectionResponses).set(currentSection, finalTranscript);
     const responsesObject = Object.fromEntries(Array.from(allResponses.entries()).map(([id, text]) => [SECTIONS[id - 1].title, text]));
     localStorage.setItem("value-guide-responses", JSON.stringify(responsesObject));
+
+    // Update partner record with business value guide
+    if (partnerId) {
+      try {
+        const { error } = await supabase
+          .from('partners')
+          .update({ business_value_guide: JSON.stringify(responsesObject) })
+          .eq('id', parseInt(partnerId));
+        
+        if (error) {
+          console.error('Failed to update partner:', error);
+        }
+      } catch (error) {
+        console.error('Error updating partner:', error);
+      }
+    }
 
     // Navigate to OAuth link (to be provided)
     navigate(`/connect-location?companyId=${companyId}&partnerId=${partnerId}`);
