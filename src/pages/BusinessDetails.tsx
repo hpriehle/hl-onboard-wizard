@@ -118,7 +118,7 @@ const BusinessDetails = () => {
 
           <div>
             <Label htmlFor="legalName">
-              Company Legal Name <span className="text-destructive">*</span>
+              Company Name <span className="text-destructive">*</span>
             </Label>
             <Input id="legalName" value={formData.legalName} onChange={e => updateField("legalName", e.target.value)} placeholder="As registered with government" required />
           </div>
