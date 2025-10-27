@@ -89,7 +89,7 @@ const AgencyInfo = () => {
           email: formData.email,
           phone: formData.phone
         } as any)
-        .select()
+        .select("id")
         .single();
       
       console.log("Supabase insert result:", { agency, error });
