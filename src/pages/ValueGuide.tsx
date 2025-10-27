@@ -62,49 +62,82 @@ class SpeechRecognitionService {
   private isSupported: boolean;
 
   constructor() {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    this.isSupported = !!SpeechRecognition;
-    
-    if (this.isSupported) {
-      this.recognition = new SpeechRecognition();
-      this.recognition.continuous = true;
-      this.recognition.interimResults = true;
-      this.recognition.lang = 'en-US';
+    try {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      this.isSupported = !!SpeechRecognition;
+      
+      console.log('Speech Recognition available:', this.isSupported);
+      console.log('SpeechRecognition:', (window as any).SpeechRecognition);
+      console.log('webkitSpeechRecognition:', (window as any).webkitSpeechRecognition);
+      
+      if (this.isSupported) {
+        this.recognition = new SpeechRecognition();
+        this.recognition.continuous = true;
+        this.recognition.interimResults = true;
+        this.recognition.lang = 'en-US';
+        console.log('Speech Recognition initialized successfully');
+      } else {
+        console.error('Speech Recognition not available in this browser');
+      }
+    } catch (error) {
+      console.error('Error initializing Speech Recognition:', error);
+      this.isSupported = false;
     }
   }
 
   start(onResult: (transcript: string, isFinal: boolean) => void, onError: (error: string) => void) {
     if (!this.isSupported) {
+      console.error('Cannot start: Speech recognition is not supported');
       onError('Speech recognition is not supported in this browser');
       return;
     }
 
-    this.recognition.onresult = (event: any) => {
-      let interimTranscript = '';
-      let finalTranscript = '';
+    try {
+      this.recognition.onresult = (event: any) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript + ' ';
-        } else {
-          interimTranscript += transcript;
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript + ' ';
+          } else {
+            interimTranscript += transcript;
+          }
         }
-      }
 
-      onResult(finalTranscript || interimTranscript, !!finalTranscript);
-    };
+        onResult(finalTranscript || interimTranscript, !!finalTranscript);
+      };
 
-    this.recognition.onerror = (event: any) => {
-      onError(event.error);
-    };
+      this.recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        onError(event.error);
+      };
 
-    this.recognition.start();
+      this.recognition.onstart = () => {
+        console.log('Speech recognition started');
+      };
+
+      this.recognition.onend = () => {
+        console.log('Speech recognition ended');
+      };
+
+      console.log('Starting speech recognition...');
+      this.recognition.start();
+    } catch (error) {
+      console.error('Error starting speech recognition:', error);
+      onError(error instanceof Error ? error.message : 'Failed to start recognition');
+    }
   }
 
   stop() {
     if (this.recognition) {
-      this.recognition.stop();
+      try {
+        this.recognition.stop();
+        console.log('Speech recognition stopped');
+      } catch (error) {
+        console.error('Error stopping speech recognition:', error);
+      }
     }
   }
 
