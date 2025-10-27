@@ -61,6 +61,9 @@ class SpeechRecognitionService {
   private recognition: any;
   private isSupported: boolean;
   private shouldContinue = false;
+  private retryCount = 0;
+  private maxRetries = 3;
+  private onFatalError: ((error: string) => void) | null = null;
 
   constructor() {
     try {
@@ -94,9 +97,12 @@ class SpeechRecognitionService {
     }
 
     this.shouldContinue = true;
+    this.retryCount = 0;
+    this.onFatalError = onError;
 
     try {
       this.recognition.onresult = (event: any) => {
+        this.retryCount = 0; // Reset retry count on successful result
         let interimTranscript = '';
         let finalTranscript = '';
 
@@ -114,15 +120,40 @@ class SpeechRecognitionService {
 
       this.recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
-        // Auto-recover from common non-fatal errors
+        
+        // Auto-recover from common non-fatal errors with retry limit
         if (['no-speech', 'audio-capture', 'network', 'aborted'].includes(event.error)) {
+          this.retryCount++;
+          
+          if (this.retryCount > this.maxRetries) {
+            console.error(`Max retries (${this.maxRetries}) exceeded for error: ${event.error}`);
+            this.shouldContinue = false;
+            
+            let userMessage = 'Speech recognition failed after multiple attempts. ';
+            if (event.error === 'network') {
+              userMessage += 'Network connectivity issue. Please check your connection or use OpenAI Realtime API for better reliability.';
+            } else if (event.error === 'no-speech') {
+              userMessage += 'No speech detected. Please speak clearly into your microphone.';
+            } else if (event.error === 'audio-capture') {
+              userMessage += 'Microphone access issue. Please check your microphone permissions.';
+            } else {
+              userMessage += 'Please try again or type your response manually.';
+            }
+            
+            onError(userMessage);
+            return;
+          }
+          
           if (this.shouldContinue) {
-            console.log(`Recoverable error (${event.error}). Will attempt to restart.`);
+            console.log(`Recoverable error (${event.error}). Retry ${this.retryCount}/${this.maxRetries}`);
             try { this.recognition.stop(); } catch (_) {}
             // Let onend trigger the restart
           }
-          return; // do not bubble to UI toast for recoverable errors
+          return; // do not bubble to UI toast for recoverable errors under retry limit
         }
+        
+        // Fatal errors
+        this.shouldContinue = false;
         onError(event.error);
       };
 
@@ -132,7 +163,7 @@ class SpeechRecognitionService {
 
       this.recognition.onend = () => {
         console.log('Speech recognition ended');
-        if (this.shouldContinue) {
+        if (this.shouldContinue && this.retryCount <= this.maxRetries) {
           // Chrome often ends even in continuous mode; restart to keep listening
           try {
             console.log('Auto-restarting speech recognition...');
@@ -140,7 +171,9 @@ class SpeechRecognitionService {
           } catch (e) {
             console.warn('Immediate restart failed, retrying shortly...', e);
             setTimeout(() => {
-              try { this.recognition.start(); } catch (err) { console.error('Restart error:', err); }
+              if (this.shouldContinue && this.retryCount <= this.maxRetries) {
+                try { this.recognition.start(); } catch (err) { console.error('Restart error:', err); }
+              }
             }, 300);
           }
         }
