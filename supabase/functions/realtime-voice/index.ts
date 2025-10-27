@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 serve(async (req) => {
   const { headers } = req;
@@ -13,17 +14,54 @@ serve(async (req) => {
     return new Response("OPENAI_API_KEY not configured", { status: 500 });
   }
 
+  console.log("Creating ephemeral token...");
+  
+  // First, create an ephemeral token
+  let ephemeralKey: string;
+  try {
+    const sessionResponse = await fetch("https://api.openai.com/v1/realtime/sessions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-realtime-preview-2024-12-17",
+        voice: "alloy",
+        instructions: "You are a helpful transcription assistant. Transcribe the user's speech accurately in real-time."
+      }),
+    });
+
+    if (!sessionResponse.ok) {
+      const errorText = await sessionResponse.text();
+      console.error("Failed to create session:", sessionResponse.status, errorText);
+      return new Response(`Failed to create OpenAI session: ${errorText}`, { status: 500 });
+    }
+
+    const sessionData = await sessionResponse.json();
+    ephemeralKey = sessionData.client_secret.value;
+    console.log("Ephemeral token created successfully");
+  } catch (error) {
+    console.error("Error creating ephemeral token:", error);
+    return new Response("Failed to create ephemeral token", { status: 500 });
+  }
+
   // Upgrade client connection to WebSocket
   const { socket: clientSocket, response } = Deno.upgradeWebSocket(req);
 
-  // Connect to OpenAI Realtime API
+  // Connect to OpenAI Realtime API using ephemeral token
   const openAIUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`;
-  const openAISocket = new WebSocket(openAIUrl, {
-    headers: {
-      "Authorization": `Bearer ${OPENAI_API_KEY}`,
-      "OpenAI-Beta": "realtime=v1",
-    },
-  });
+  let openAISocket: WebSocket;
+  
+  try {
+    openAISocket = new WebSocket(
+      openAIUrl,
+      ["realtime", `openai-insecure-api-key.${ephemeralKey}`, "openai-beta.realtime-v1"]
+    );
+  } catch (error) {
+    console.error("Error creating WebSocket:", error);
+    return new Response("Failed to create WebSocket connection", { status: 500 });
+  }
 
   let sessionConfigured = false;
 
