@@ -23,7 +23,7 @@ export class AudioRecorder {
       });
       
       this.source = this.audioContext.createMediaStreamSource(this.stream);
-      this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+      this.processor = this.audioContext.createScriptProcessor(1024, 1, 1);
       
       this.processor.onaudioprocess = (e) => {
         const inputData = e.inputBuffer.getChannelData(0);
@@ -81,6 +81,8 @@ export class RealtimeVoiceService {
   private ws: WebSocket | null = null;
   private recorder: AudioRecorder | null = null;
   private isConnected = false;
+  private commitIntervalId: number | null = null;
+  private hasNewAudio = false;
 
   constructor(
     private onTranscript: (transcript: string, isFinal: boolean) => void,
@@ -169,20 +171,37 @@ export class RealtimeVoiceService {
           audio: base64Audio
         };
         this.ws.send(JSON.stringify(message));
+        // Mark that we have new audio since the last commit
+        this.hasNewAudio = true;
       }
     });
 
     await this.recorder.start();
+    // Start periodic commits to get incremental transcripts
+    if (this.commitIntervalId) {
+      clearInterval(this.commitIntervalId);
+    }
+    this.commitIntervalId = window.setInterval(() => {
+      if (this.ws && this.ws.readyState === WebSocket.OPEN && this.hasNewAudio) {
+        this.ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
+        this.hasNewAudio = false;
+      }
+    }, 300);
     console.log('Recording started');
   }
 
   stopRecording() {
+    // Clear periodic commits
+    if (this.commitIntervalId) {
+      clearInterval(this.commitIntervalId);
+      this.commitIntervalId = null;
+    }
     if (this.recorder) {
       this.recorder.stop();
       this.recorder = null;
       console.log('Recording stopped');
       
-      // Manually commit the audio buffer for transcription
+      // Final commit to flush any remaining audio
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         this.ws.send(JSON.stringify({
           type: 'input_audio_buffer.commit'
