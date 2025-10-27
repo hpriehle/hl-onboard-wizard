@@ -178,6 +178,7 @@ export class RealtimeVoiceService {
 
     await this.recorder.start();
     // Start periodic commits to get incremental transcripts
+    // OpenAI requires at least 100ms of audio, so commit every 500ms
     if (this.commitIntervalId) {
       clearInterval(this.commitIntervalId);
     }
@@ -186,7 +187,7 @@ export class RealtimeVoiceService {
         this.ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
         this.hasNewAudio = false;
       }
-    }, 300);
+    }, 500);
     console.log('Recording started');
   }
 
