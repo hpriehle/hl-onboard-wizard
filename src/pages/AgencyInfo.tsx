@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Link2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FormData {
   agencyName: string;
@@ -69,7 +70,7 @@ const AgencyInfo = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -81,18 +82,45 @@ const AgencyInfo = () => {
       return;
     }
 
-    // Mock OAuth flow - in production, this would open OAuth popup
-    toast({
-      title: "Connecting Agency...",
-      description: "Redirecting to HighLevel authorization",
-    });
+    try {
+      toast({
+        title: "Creating Agency...",
+        description: "Setting up your account",
+      });
 
-    // Simulate OAuth success and redirect with companyId
-    setTimeout(() => {
-      const mockCompanyId = crypto.randomUUID();
+      // Create new agency record
+      const { data: agency, error } = await supabase
+        .from("agency")
+        .insert({
+          companyName: formData.agencyName,
+          whiteLabelDomain: formData.hlDomain,
+          website: formData.website,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Store agency data for later steps
       localStorage.setItem("onboarding-agency", JSON.stringify(formData));
-      navigate(`/business-details?companyId=${mockCompanyId}`);
-    }, 1500);
+      localStorage.setItem("agency-id", agency.id.toString());
+
+      // Redirect to HighLevel OAuth
+      const oauthUrl = `https://marketplace.gohighlevel.com/oauth/chooselocation?response_type=code&redirect_uri=https%3A%2F%2Fn8n.omnirasystems.com%2Fwebhook%2Fomnira%2Fonboarding%2Foauth-agency&client_id=68d176bf618e21d1257ce060-mfvc0rs2&scope=users.write+users.readonly+custom-menu-link.write+custom-menu-link.readonly+twilioaccount.read+snapshots.write&version_id=68d176bf618e21d1257ce060&state=onboarding_app_${agency.id}`;
+      
+      window.location.href = oauthUrl;
+    } catch (error) {
+      console.error("Error creating agency:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create agency. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const updateField = (field: keyof FormData, value: string) => {
