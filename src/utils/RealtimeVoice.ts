@@ -181,6 +181,14 @@ export class RealtimeVoiceService {
       this.recorder.stop();
       this.recorder = null;
       console.log('Recording stopped');
+      
+      // Manually commit the audio buffer for transcription
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({
+          type: 'input_audio_buffer.commit'
+        }));
+        console.log('Audio buffer committed for transcription');
+      }
     }
   }
 

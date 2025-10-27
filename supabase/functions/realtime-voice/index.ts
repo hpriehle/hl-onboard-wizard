@@ -82,18 +82,13 @@ serve(async (req) => {
         const sessionConfig = {
           type: "session.update",
           session: {
-            modalities: ["text"],  // Only text, no audio output
-            instructions: "You are a transcription service. Only transcribe what the user says. Do not respond or engage in conversation.",
+            modalities: ["text"],
+            instructions: "You are a transcription service. Only transcribe what the user says.",
             input_audio_format: "pcm16",
             input_audio_transcription: {
               model: "whisper-1"
             },
-            turn_detection: {
-              type: "server_vad",
-              threshold: 0.5,
-              prefix_padding_ms: 300,
-              silence_duration_ms: 1000
-            },
+            turn_detection: null,  // Disable automatic turn detection/responses
           }
         };
         
