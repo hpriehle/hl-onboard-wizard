@@ -84,7 +84,7 @@ serve(async (req) => {
             instructions: "Only transcribe exactly what the user says. Do not generate responses.",
             input_audio_format: "pcm16",
             input_audio_transcription: {
-              model: "whisper-1",
+              model: "gpt-4o-mini-transcribe",  // Pin to specific transcription model
               language: "en"  // Pin to English to prevent language switching
             },
             turn_detection: null,  // Disable automatic turn detection/responses
@@ -92,7 +92,7 @@ serve(async (req) => {
         };
         
         openAISocket.send(JSON.stringify(sessionConfig));
-        console.log("Session configured");
+        console.log("Session configured with gpt-4o-mini-transcribe");
       }
 
       // Filter out response.* events (we only want transcription)

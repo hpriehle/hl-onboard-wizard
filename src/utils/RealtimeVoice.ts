@@ -47,6 +47,10 @@ export class AudioRecorder {
     }
   }
 
+  getSampleRate(): number | null {
+    return this.audioContext?.sampleRate ?? null;
+  }
+
   stop() {
     if (this.source) {
       this.source.disconnect();
@@ -71,13 +75,42 @@ export class AudioRecorder {
   }
 }
 
-export const encodeAudioForAPI = (float32Array: Float32Array): string => {
-  const int16Array = new Int16Array(float32Array.length);
-  for (let i = 0; i < float32Array.length; i++) {
-    const s = Math.max(-1, Math.min(1, float32Array[i]));
+// Resample audio to 24kHz and encode as base64 PCM16
+export const encodeResampledAudioForAPI = (float32Array: Float32Array, inputSampleRate: number): string => {
+  const TARGET_SAMPLE_RATE = 24000;
+  
+  let resampledData: Float32Array;
+  
+  if (inputSampleRate === TARGET_SAMPLE_RATE) {
+    // No resampling needed
+    resampledData = float32Array;
+  } else {
+    // Resample using linear interpolation
+    const ratio = inputSampleRate / TARGET_SAMPLE_RATE;
+    const outputLength = Math.floor(float32Array.length / ratio);
+    resampledData = new Float32Array(outputLength);
+    
+    for (let i = 0; i < outputLength; i++) {
+      const srcIndex = i * ratio;
+      const srcIndexFloor = Math.floor(srcIndex);
+      const srcIndexCeil = Math.min(srcIndexFloor + 1, float32Array.length - 1);
+      const fraction = srcIndex - srcIndexFloor;
+      
+      // Linear interpolation
+      resampledData[i] = 
+        float32Array[srcIndexFloor] * (1 - fraction) + 
+        float32Array[srcIndexCeil] * fraction;
+    }
+  }
+  
+  // Convert to Int16 PCM
+  const int16Array = new Int16Array(resampledData.length);
+  for (let i = 0; i < resampledData.length; i++) {
+    const s = Math.max(-1, Math.min(1, resampledData[i]));
     int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
   }
   
+  // Convert to base64
   const uint8Array = new Uint8Array(int16Array.buffer);
   let binary = '';
   const chunkSize = 0x8000;
@@ -99,6 +132,10 @@ export class RealtimeVoiceService {
   // Track appended audio since last commit to satisfy 100ms minimum
   private appendedSamplesSinceLastCommit = 0;
   private readonly MIN_COMMIT_SAMPLES = 2400; // 100ms at 24kHz
+  
+  // Audio resampling
+  private inputSampleRate = 48000; // Default assumption
+  private firstAudioChunk = true;
   
   // VAD state
   private isSpeaking = false;
@@ -223,7 +260,15 @@ export class RealtimeVoiceService {
 
     this.recorder = new AudioRecorder((audioData) => {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        // Compute RMS for logging only (not filtering)
+        // Capture input sample rate on first chunk
+        if (this.firstAudioChunk) {
+          this.inputSampleRate = this.recorder?.getSampleRate() || 48000;
+          console.log('Detected input sample rate:', this.inputSampleRate, 'Hz');
+          console.log('Will resample to 24000 Hz for OpenAI');
+          this.firstAudioChunk = false;
+        }
+        
+        // Compute RMS for logging
         let sumSquares = 0;
         for (let i = 0; i < audioData.length; i++) {
           sumSquares += audioData[i] * audioData[i];
@@ -246,14 +291,16 @@ export class RealtimeVoiceService {
           }
         }
         
-        // Send ALL audio continuously - let Whisper handle speech detection
-        const base64Audio = encodeAudioForAPI(audioData);
+        // Resample and send ALL audio continuously
+        const base64Audio = encodeResampledAudioForAPI(audioData, this.inputSampleRate);
         this.ws.send(JSON.stringify({
           type: 'input_audio_buffer.append',
           audio: base64Audio
         }));
         this.hasNewAudio = true;
-        this.appendedSamplesSinceLastCommit += audioData.length;
+        // Count resampled samples (at 24kHz)
+        const resampledLength = Math.floor(audioData.length * (24000 / this.inputSampleRate));
+        this.appendedSamplesSinceLastCommit += resampledLength;
       }
     });
 
@@ -264,6 +311,7 @@ export class RealtimeVoiceService {
     this.silenceFrames = 0;
     this.lastEmittedFragment = '';
     this.lastEmitTime = 0;
+    this.firstAudioChunk = true;
     
     // Start periodic commits to get incremental transcripts
     // Commit frequently but only when >=100ms of audio is buffered
