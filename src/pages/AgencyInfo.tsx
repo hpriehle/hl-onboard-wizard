@@ -71,29 +71,28 @@ const AgencyInfo = () => {
     }
     try {
       console.log("Starting agency creation with data:", formData);
-      
       toast({
         title: "Creating Agency...",
         description: "Setting up your account"
       });
 
       // Create new agency record
-      const { data: agency, error } = await supabase
-        .from("agency")
-        .insert({
-          companyName: formData.agencyName,
-          whiteLabelDomain: formData.hlDomain,
-          website: formData.website,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone
-        } as any)
-        .select("id")
-        .single();
-      
-      console.log("Supabase insert result:", { agency, error });
-      
+      const {
+        data: agency,
+        error
+      } = await supabase.from("agency").insert({
+        companyName: formData.agencyName,
+        whiteLabelDomain: formData.hlDomain,
+        website: formData.website,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone
+      } as any).select("id").single();
+      console.log("Supabase insert result:", {
+        agency,
+        error
+      });
       if (error) {
         console.error("Error creating agency:", error);
         throw error;
@@ -132,9 +131,7 @@ const AgencyInfo = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Agency Information Section */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-foreground border-b pb-2">
-            Agency Information
-          </h3>
+          <h3 className="text-lg font-semibold text-foreground border-b pb-2">Company Information</h3>
 
           <div>
             <Label htmlFor="agencyName">
