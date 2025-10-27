@@ -2,37 +2,20 @@ import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { OnboardingLayout } from "@/components/OnboardingLayout";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { Link2, Check, ExternalLink, PlayCircle } from "lucide-react";
+import { Link2, Check } from "lucide-react";
 const ConnectLocation = () => {
   const navigate = useNavigate();
-  const {
-    toast
-  } = useToast();
   const [searchParams] = useSearchParams();
   const companyId = searchParams.get("companyId");
+  const partnerId = searchParams.get("partnerId");
   useEffect(() => {
     if (!companyId) {
       navigate("/");
     }
   }, [companyId, navigate]);
   const handleConnect = () => {
-    // Mock OAuth flow
-    toast({
-      title: "Opening HighLevel",
-      description: "Redirecting to location selection..."
-    });
-
-    // Simulate OAuth success
-    setTimeout(() => {
-      toast({
-        title: "🎉 Setup Complete!",
-        description: "Your location has been connected successfully"
-      });
-      setTimeout(() => {
-        navigate("/success");
-      }, 2000);
-    }, 2000);
+    const oauthUrl = `https://marketplace.gohighlevel.com/oauth/chooselocation?response_type=code&redirect_uri=https%3A%2F%2Fn8n.omnirasystems.com%2Fwebhook%2Fomnira%2Fonboarding%2Foauth&client_id=68c97ca3bb623f4d37ad9782-mfo6o885&scope=businesses.readonly+businesses.write+calendars.readonly+calendars.write+calendars%2Fevents.readonly+calendars%2Fevents.write+calendars%2Fgroups.readonly+calendars%2Fgroups.write+calendars%2Fresources.readonly+calendars%2Fresources.write+conversations.readonly+conversations.write+conversations%2Fmessage.readonly+conversations%2Fmessage.write+conversations%2Freports.readonly+conversations%2Flivechat.write+contacts.readonly+contacts.write+objects%2Fschema.readonly+objects%2Fschema.write+objects%2Frecord.readonly+objects%2Frecord.write+associations.write+associations.readonly+associations%2Frelation.readonly+associations%2Frelation.write+forms.readonly+forms.write+locations%2FcustomValues.readonly+locations%2FcustomValues.write+locations%2FcustomFields.readonly+locations%2FcustomFields.write+locations%2Ftags.readonly+locations%2Ftags.write+opportunities.write+opportunities.readonly+twilioaccount.read+phonenumbers.read+numberpools.read+voice-ai-agents.readonly+voice-ai-dashboard.readonly+voice-ai-agents.write+voice-ai-agent-goals.readonly+voice-ai-agent-goals.write+knowledge-bases.write+knowledge-bases.readonly+oauth.readonly+saas%2Flocation.read+users.write+locations.readonly+users.readonly&version_id=68c97ca3bb623f4d37ad9782&state=${partnerId}`;
+    window.location.href = oauthUrl;
   };
   const permissions = ["Access to contacts and leads", "Send and receive messages", "View conversation history", "Create and manage workflows", "Access calendar and appointments"];
   return <OnboardingLayout currentStep={4} title="Final Step: Connect Your Location" subtitle="Install the app to your specific HighLevel location to complete setup">
