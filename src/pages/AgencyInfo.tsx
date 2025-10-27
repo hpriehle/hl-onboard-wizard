@@ -70,6 +70,8 @@ const AgencyInfo = () => {
       return;
     }
     try {
+      console.log("Starting agency creation with data:", formData);
+      
       toast({
         title: "Creating Agency...",
         description: "Setting up your account"
@@ -88,7 +90,13 @@ const AgencyInfo = () => {
         email: formData.email,
         phone: formData.phone
       } as any).select().single();
-      if (error) throw error;
+      
+      console.log("Supabase response:", { agency, error });
+      
+      if (error) {
+        console.error("Error creating agency:", error);
+        throw error;
+      }
 
       // Store agency data for later steps
       localStorage.setItem("onboarding-agency", JSON.stringify(formData));
