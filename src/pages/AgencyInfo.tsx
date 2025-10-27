@@ -87,7 +87,7 @@ const AgencyInfo = () => {
         lastName: formData.lastName,
         email: formData.email,
         phone: formData.phone
-      }).select().single();
+      } as any).select().single();
       if (error) throw error;
 
       // Store agency data for later steps
