@@ -60,6 +60,7 @@ const SECTIONS: Section[] = [
 class SpeechRecognitionService {
   private recognition: any;
   private isSupported: boolean;
+  private shouldContinue = false;
 
   constructor() {
     try {
@@ -72,7 +73,7 @@ class SpeechRecognitionService {
       
       if (this.isSupported) {
         this.recognition = new SpeechRecognition();
-        this.recognition.continuous = true;
+        this.recognition.continuous = true; // Chrome may still end; we'll auto-restart
         this.recognition.interimResults = true;
         this.recognition.lang = 'en-US';
         console.log('Speech Recognition initialized successfully');
@@ -91,6 +92,8 @@ class SpeechRecognitionService {
       onError('Speech recognition is not supported in this browser');
       return;
     }
+
+    this.shouldContinue = true;
 
     try {
       this.recognition.onresult = (event: any) => {
@@ -111,6 +114,15 @@ class SpeechRecognitionService {
 
       this.recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
+        // Auto-recover from common non-fatal errors
+        if (['no-speech', 'audio-capture', 'network', 'aborted'].includes(event.error)) {
+          if (this.shouldContinue) {
+            console.log(`Recoverable error (${event.error}). Will attempt to restart.`);
+            try { this.recognition.stop(); } catch (_) {}
+            // Let onend trigger the restart
+          }
+          return; // do not bubble to UI toast for recoverable errors
+        }
         onError(event.error);
       };
 
@@ -120,6 +132,18 @@ class SpeechRecognitionService {
 
       this.recognition.onend = () => {
         console.log('Speech recognition ended');
+        if (this.shouldContinue) {
+          // Chrome often ends even in continuous mode; restart to keep listening
+          try {
+            console.log('Auto-restarting speech recognition...');
+            this.recognition.start();
+          } catch (e) {
+            console.warn('Immediate restart failed, retrying shortly...', e);
+            setTimeout(() => {
+              try { this.recognition.start(); } catch (err) { console.error('Restart error:', err); }
+            }, 300);
+          }
+        }
       };
 
       console.log('Starting speech recognition...');
@@ -131,13 +155,15 @@ class SpeechRecognitionService {
   }
 
   stop() {
+    this.shouldContinue = false;
     if (this.recognition) {
       try {
         this.recognition.stop();
-        console.log('Speech recognition stopped');
-      } catch (error) {
-        console.error('Error stopping speech recognition:', error);
-      }
+      } catch (_) {}
+      try {
+        this.recognition.abort();
+      } catch (_) {}
+      console.log('Speech recognition stopped');
     }
   }
 
