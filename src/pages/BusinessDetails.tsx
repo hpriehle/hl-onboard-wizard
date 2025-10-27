@@ -124,7 +124,7 @@ const BusinessDetails = () => {
         description: "Partner record created successfully"
       });
       
-      navigate(`/value-guide?companyId=${companyId}`);
+      navigate(`/value-guide?companyId=${companyId}&partnerId=${data.partner.id}`);
     } catch (error) {
       console.error('Unexpected error:', error);
       toast({
