@@ -87,20 +87,52 @@ const BusinessDetails = () => {
 
     fetchAgencyData();
   }, [companyId, navigate, toast]);
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Store business details
-    localStorage.setItem("onboarding-business", JSON.stringify({
-      ...formData,
-      hasTwilio,
-      companyId
-    }));
-    toast({
-      title: "Information Saved",
-      description: "Proceeding to business value guide"
-    });
-    navigate(`/value-guide?companyId=${companyId}`);
+    try {
+      // Store business details locally
+      localStorage.setItem("onboarding-business", JSON.stringify({
+        ...formData,
+        hasTwilio,
+        companyId
+      }));
+
+      // Create partner record via edge function
+      const { data, error } = await supabase.functions.invoke('create-partner', {
+        body: {
+          companyId,
+          hasTwilio,
+          ...formData
+        }
+      });
+
+      if (error) {
+        console.error('Error creating partner:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save partner information. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Partner created:', data);
+      
+      toast({
+        title: "Information Saved",
+        description: "Partner record created successfully"
+      });
+      
+      navigate(`/value-guide?companyId=${companyId}`);
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   const updateField = (field: string, value: string) => {
     setFormData(prev => ({
