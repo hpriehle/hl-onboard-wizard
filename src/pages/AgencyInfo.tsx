@@ -90,7 +90,7 @@ const AgencyInfo = () => {
             email: formData.email,
             phone: formData.phone
           } as any,
-          { returning: "minimal" }
+          { returning: "minimal" } as any
         );
       
       console.log("Supabase insert result:", { error });
