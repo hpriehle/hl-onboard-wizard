@@ -184,6 +184,7 @@ const ValueGuide = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [currentTranscript, setCurrentTranscript] = useState("");
   const [fullTranscript, setFullTranscript] = useState("");
+  const [speechSupported, setSpeechSupported] = useState<boolean | null>(null);
   const recognitionServiceRef = useRef<SpeechRecognitionService | null>(null);
 
   useEffect(() => {
@@ -194,6 +195,7 @@ const ValueGuide = () => {
 
   useEffect(() => {
     recognitionServiceRef.current = new SpeechRecognitionService();
+    setSpeechSupported(recognitionServiceRef.current?.isAvailable() ?? false);
     
     return () => {
       recognitionServiceRef.current?.stop();
@@ -324,7 +326,7 @@ const ValueGuide = () => {
     >
       <div className="space-y-6">
         {/* Browser Support Info */}
-        {!recognitionServiceRef.current?.isAvailable() && (
+        {speechSupported === false && (
           <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-lg flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
             <div>
@@ -410,7 +412,7 @@ const ValueGuide = () => {
             <Button
               onClick={toggleRecording}
               size="lg"
-              disabled={!recognitionServiceRef.current?.isAvailable()}
+              disabled={speechSupported === false}
               className={`
                 w-20 h-20 rounded-full transition-all shadow-lg
                 ${isRecording 
