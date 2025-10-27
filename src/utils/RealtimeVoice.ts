@@ -106,53 +106,31 @@ export class RealtimeVoiceService {
           const data = JSON.parse(event.data);
           console.log('Received event:', data.type, data);
 
-          // Handle input audio transcription - COMPLETED
+          // ONLY handle INPUT audio transcription - what the USER said
           if (data.type === 'conversation.item.input_audio_transcription.completed') {
             const transcript = data.transcript || '';
             if (transcript) {
-              console.log('Final transcript:', transcript);
+              console.log('User said:', transcript);
               this.onTranscript(transcript, true);
             }
           }
 
-          // Handle input audio transcription - DELTA (partial)
+          // Handle partial transcription
           if (data.type === 'conversation.item.input_audio_transcription.delta') {
             const delta = data.delta || '';
             if (delta) {
-              console.log('Transcript delta:', delta);
+              console.log('User transcript delta:', delta);
               this.onTranscript(delta, false);
-            }
-          }
-
-          // Handle response audio transcript (AI speaking back)
-          if (data.type === 'response.audio_transcript.delta') {
-            const delta = data.delta || '';
-            if (delta) {
-              console.log('Response transcript delta:', delta);
-              this.onTranscript(delta, false);
-            }
-          }
-
-          if (data.type === 'response.audio_transcript.done') {
-            const transcript = data.transcript || '';
-            if (transcript) {
-              console.log('Response transcript done:', transcript);
-              this.onTranscript(transcript, true);
             }
           }
 
           // Handle speech detection
           if (data.type === 'input_audio_buffer.speech_started') {
-            console.log('Speech started');
+            console.log('User started speaking');
           }
 
           if (data.type === 'input_audio_buffer.speech_stopped') {
-            console.log('Speech stopped');
-          }
-
-          // Handle conversation item creation
-          if (data.type === 'conversation.item.created') {
-            console.log('Conversation item created:', data.item);
+            console.log('User stopped speaking');
           }
 
           if (data.type === 'error') {

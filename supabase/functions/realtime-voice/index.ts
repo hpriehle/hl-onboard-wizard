@@ -82,11 +82,9 @@ serve(async (req) => {
         const sessionConfig = {
           type: "session.update",
           session: {
-            modalities: ["text", "audio"],
-            instructions: "You are a helpful transcription assistant. Transcribe the user's speech accurately.",
-            voice: "alloy",
+            modalities: ["text"],  // Only text, no audio output
+            instructions: "You are a transcription service. Only transcribe what the user says. Do not respond or engage in conversation.",
             input_audio_format: "pcm16",
-            output_audio_format: "pcm16",
             input_audio_transcription: {
               model: "whisper-1"
             },
@@ -96,7 +94,6 @@ serve(async (req) => {
               prefix_padding_ms: 300,
               silence_duration_ms: 1000
             },
-            temperature: 0.8,
           }
         };
         
