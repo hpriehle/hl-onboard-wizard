@@ -83,7 +83,9 @@ export class RealtimeVoiceService {
   private isConnected = false;
   private commitIntervalId: number | null = null;
   private hasNewAudio = false;
-
+  // Track appended audio since last commit to satisfy 100ms minimum
+  private appendedSamplesSinceLastCommit = 0;
+  private readonly MIN_COMMIT_SAMPLES = 2400; // 100ms at 24kHz
   constructor(
     private onTranscript: (transcript: string, isFinal: boolean) => void,
     private onError: (error: string) => void
@@ -133,6 +135,16 @@ export class RealtimeVoiceService {
 
           if (data.type === 'input_audio_buffer.speech_stopped') {
             console.log('User stopped speaking');
+            // Force an immediate commit if we have buffered audio
+            if (this.ws && this.ws.readyState === WebSocket.OPEN && this.appendedSamplesSinceLastCommit > 0) {
+              try {
+                this.ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
+                this.appendedSamplesSinceLastCommit = 0;
+                this.hasNewAudio = false;
+              } catch (e) {
+                console.error('Failed to commit on speech_stopped', e);
+              }
+            }
           }
 
           if (data.type === 'error') {
@@ -166,28 +178,37 @@ export class RealtimeVoiceService {
     this.recorder = new AudioRecorder((audioData) => {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         const base64Audio = encodeAudioForAPI(audioData);
-        const message = {
+        this.ws.send(JSON.stringify({
           type: 'input_audio_buffer.append',
           audio: base64Audio
-        };
-        this.ws.send(JSON.stringify(message));
+        }));
         // Mark that we have new audio since the last commit
         this.hasNewAudio = true;
+        // Track how much audio has been appended since last commit (samples)
+        this.appendedSamplesSinceLastCommit += audioData.length;
       }
     });
 
     await this.recorder.start();
+    // Reset counters
+    this.appendedSamplesSinceLastCommit = 0;
     // Start periodic commits to get incremental transcripts
-    // OpenAI requires at least 100ms of audio, so commit every 500ms
+    // Commit frequently but only when >=100ms of audio is buffered
     if (this.commitIntervalId) {
       clearInterval(this.commitIntervalId);
     }
     this.commitIntervalId = window.setInterval(() => {
-      if (this.ws && this.ws.readyState === WebSocket.OPEN && this.hasNewAudio) {
+      if (
+        this.ws &&
+        this.ws.readyState === WebSocket.OPEN &&
+        this.hasNewAudio &&
+        this.appendedSamplesSinceLastCommit >= this.MIN_COMMIT_SAMPLES
+      ) {
         this.ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
         this.hasNewAudio = false;
+        this.appendedSamplesSinceLastCommit = 0;
       }
-    }, 500);
+    }, 250);
     console.log('Recording started');
   }
 
@@ -203,10 +224,11 @@ export class RealtimeVoiceService {
       console.log('Recording stopped');
       
       // Final commit to flush any remaining audio
-      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      if (this.ws && this.ws.readyState === WebSocket.OPEN && this.appendedSamplesSinceLastCommit > 0) {
         this.ws.send(JSON.stringify({
           type: 'input_audio_buffer.commit'
         }));
+        this.appendedSamplesSinceLastCommit = 0;
         console.log('Audio buffer committed for transcription');
       }
     }
