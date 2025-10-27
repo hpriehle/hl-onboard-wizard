@@ -279,20 +279,6 @@ const ValueGuide = () => {
             </ul>
           </div>
 
-          {/* Textarea with real-time transcription */}
-          <div>
-            <label className="text-sm font-medium text-foreground mb-2 block">
-              Your Response
-            </label>
-            <Textarea 
-              value={displayText}
-              onChange={(e) => setFullTranscript(e.target.value)}
-              placeholder={isRecording ? "Listening... speak now" : "Click the microphone to start recording, or type your response here..."}
-              className="min-h-[200px] text-base"
-              disabled={isRecording}
-            />
-          </div>
-
           {/* Recording Button */}
           <div className="flex justify-center py-4">
             <Button
@@ -322,6 +308,20 @@ const ValueGuide = () => {
               🎤 Recording in progress...
             </p>
           )}
+
+          {/* Textarea with real-time transcription */}
+          <div>
+            <label className="text-sm font-medium text-foreground mb-2 block">
+              Your Response
+            </label>
+            <Textarea 
+              value={displayText}
+              onChange={(e) => setFullTranscript(e.target.value)}
+              placeholder={isRecording ? "Listening... speak now" : "Click the microphone to start recording, or type your response here..."}
+              className="min-h-[200px] text-base"
+              disabled={isRecording}
+            />
+          </div>
 
           {/* Navigation Button */}
           <Button
