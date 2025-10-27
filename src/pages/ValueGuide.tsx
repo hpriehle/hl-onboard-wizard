@@ -92,11 +92,6 @@ const ValueGuide = () => {
       (error) => {
         console.error('Voice service error:', error);
         setIsRecording(false);
-        toast({
-          title: "Error",
-          description: error,
-          variant: "destructive",
-        });
       }
     );
     
@@ -123,11 +118,6 @@ const ValueGuide = () => {
       setIsRecording(false);
       setFullTranscript(prev => (prev + ' ' + currentTranscript).trim());
       setCurrentTranscript("");
-      
-      toast({
-        title: "Recording Stopped",
-        description: "You can now edit your response",
-      });
     } else {
       // Start recording
       try {
@@ -143,20 +133,10 @@ const ValueGuide = () => {
         
         setIsRecording(true);
         setIsConnecting(false);
-        
-        toast({
-          title: "Recording Started",
-          description: "Speak clearly - your words will appear in real-time",
-        });
       } catch (error) {
         console.error('Failed to start recording:', error);
         setIsRecording(false);
         setIsConnecting(false);
-        toast({
-          title: "Connection Failed",
-          description: error instanceof Error ? error.message : "Failed to connect to voice service",
-          variant: "destructive",
-        });
       }
     }
   };
@@ -165,11 +145,6 @@ const ValueGuide = () => {
     const trimmedTranscript = fullTranscript.trim();
     
     if (!trimmedTranscript) {
-      toast({
-        title: "Response Required",
-        description: "Please provide a response before continuing",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -179,11 +154,6 @@ const ValueGuide = () => {
     if (currentSection < SECTIONS.length) {
       // Move to next section
       setCurrentSection(prev => prev + 1);
-      
-      toast({
-        title: "Section Complete",
-        description: `Moving to section ${currentSection + 1}`,
-      });
     } else {
       // Submit - navigate to OAuth
       handleSubmit(trimmedTranscript);
@@ -202,11 +172,6 @@ const ValueGuide = () => {
     );
     
     localStorage.setItem("value-guide-responses", JSON.stringify(responsesObject));
-    
-    toast({
-      title: "Value Guide Complete!",
-      description: "Proceeding to connect your location",
-    });
     
     // Navigate to OAuth link (to be provided)
     navigate(`/connect-location?companyId=${companyId}&partnerId=${partnerId}`);
