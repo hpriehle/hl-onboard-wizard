@@ -26,9 +26,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-realtime-preview-2024-12-17",
-        voice: "alloy",
-        instructions: "You are a helpful transcription assistant. Transcribe the user's speech accurately in real-time."
+        model: "gpt-4o-realtime-preview-2024-12-17"
       }),
     });
 
@@ -83,10 +81,11 @@ serve(async (req) => {
           type: "session.update",
           session: {
             modalities: ["text"],
-            instructions: "You are a transcription service. Only transcribe what the user says.",
+            instructions: "Only transcribe exactly what the user says. Do not generate responses.",
             input_audio_format: "pcm16",
             input_audio_transcription: {
-              model: "whisper-1"
+              model: "whisper-1",
+              language: "en"  // Pin to English to prevent language switching
             },
             turn_detection: null,  // Disable automatic turn detection/responses
           }
@@ -96,8 +95,10 @@ serve(async (req) => {
         console.log("Session configured");
       }
 
-      // Forward all events to client
-      clientSocket.send(JSON.stringify(data));
+      // Filter out response.* events (we only want transcription)
+      if (!data.type.startsWith('response.')) {
+        clientSocket.send(JSON.stringify(data));
+      }
     } catch (error) {
       console.error("Error processing OpenAI message:", error);
     }

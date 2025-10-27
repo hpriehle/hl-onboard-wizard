@@ -3,6 +3,7 @@ export class AudioRecorder {
   private audioContext: AudioContext | null = null;
   private processor: ScriptProcessorNode | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
+  private gainNode: GainNode | null = null;
 
   constructor(private onAudioData: (audioData: Float32Array) => void) {}
 
@@ -23,15 +24,23 @@ export class AudioRecorder {
       });
       
       this.source = this.audioContext.createMediaStreamSource(this.stream);
-      this.processor = this.audioContext.createScriptProcessor(1024, 1, 1);
+      // Use 2048 buffer for better stability (~85ms at 24kHz)
+      this.processor = this.audioContext.createScriptProcessor(2048, 1, 1);
+      
+      // Create a muted gain node to prevent audio loopback/feedback
+      this.gainNode = this.audioContext.createGain();
+      this.gainNode.gain.value = 0;
       
       this.processor.onaudioprocess = (e) => {
         const inputData = e.inputBuffer.getChannelData(0);
         this.onAudioData(new Float32Array(inputData));
       };
       
+      // Route: source -> processor -> muted gain -> destination
+      // This keeps the graph active without playing mic audio to speakers
       this.source.connect(this.processor);
-      this.processor.connect(this.audioContext.destination);
+      this.processor.connect(this.gainNode);
+      this.gainNode.connect(this.audioContext.destination);
     } catch (error) {
       console.error('Error accessing microphone:', error);
       throw error;
@@ -46,6 +55,10 @@ export class AudioRecorder {
     if (this.processor) {
       this.processor.disconnect();
       this.processor = null;
+    }
+    if (this.gainNode) {
+      this.gainNode.disconnect();
+      this.gainNode = null;
     }
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop());
@@ -86,6 +99,19 @@ export class RealtimeVoiceService {
   // Track appended audio since last commit to satisfy 100ms minimum
   private appendedSamplesSinceLastCommit = 0;
   private readonly MIN_COMMIT_SAMPLES = 2400; // 100ms at 24kHz
+  
+  // VAD state
+  private isSpeaking = false;
+  private readonly START_THRESHOLD = 0.02; // RMS threshold to start
+  private readonly STOP_THRESHOLD = 0.01; // RMS threshold to stop
+  private silenceFrames = 0;
+  private readonly SILENCE_FRAMES_THRESHOLD = 4; // ~340ms at 2048 buffer
+  
+  // UI deduping
+  private lastEmittedFragment = '';
+  private lastEmitTime = 0;
+  private readonly DEDUPE_WINDOW_MS = 300;
+  
   constructor(
     private onTranscript: (transcript: string, isFinal: boolean) => void,
     private onError: (error: string) => void
@@ -119,11 +145,21 @@ export class RealtimeVoiceService {
             }
           }
 
-          // Handle partial transcription
+          // Handle partial transcription with deduping
           if (data.type === 'conversation.item.input_audio_transcription.delta') {
             const delta = data.delta || '';
             if (delta) {
               console.log('User transcript delta:', delta);
+              // Dedupe: if same short token repeats within window, skip
+              const now = Date.now();
+              if (delta === this.lastEmittedFragment && 
+                  delta.length <= 10 && 
+                  now - this.lastEmitTime < this.DEDUPE_WINDOW_MS) {
+                console.log('Skipping duplicate token:', delta);
+                return;
+              }
+              this.lastEmittedFragment = delta;
+              this.lastEmitTime = now;
               this.onTranscript(delta, false);
             }
           }
@@ -135,12 +171,15 @@ export class RealtimeVoiceService {
 
           if (data.type === 'input_audio_buffer.speech_stopped') {
             console.log('User stopped speaking');
-            // Force an immediate commit if we have buffered audio
-            if (this.ws && this.ws.readyState === WebSocket.OPEN && this.appendedSamplesSinceLastCommit > 0) {
+            // Only commit if we have enough buffered audio (>=100ms)
+            if (this.ws && 
+                this.ws.readyState === WebSocket.OPEN && 
+                this.appendedSamplesSinceLastCommit >= this.MIN_COMMIT_SAMPLES) {
               try {
                 this.ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
                 this.appendedSamplesSinceLastCommit = 0;
                 this.hasNewAudio = false;
+                console.log('Committed on speech_stopped');
               } catch (e) {
                 console.error('Failed to commit on speech_stopped', e);
               }
@@ -149,7 +188,14 @@ export class RealtimeVoiceService {
 
           if (data.type === 'error') {
             console.error('OpenAI error:', data.error);
-            this.onError(data.error?.message || 'Unknown error');
+            const errorMsg = data.error?.message || 'Unknown error';
+            // Handle "buffer too small" gracefully - just wait for more audio
+            if (errorMsg.includes('buffer too small')) {
+              console.log('Buffer too small, will retry with more audio');
+              // Don't reset counters, let more audio accumulate
+              return;
+            }
+            this.onError(errorMsg);
           }
         } catch (error) {
           console.error('Error parsing message:', error);
@@ -177,21 +223,50 @@ export class RealtimeVoiceService {
 
     this.recorder = new AudioRecorder((audioData) => {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        const base64Audio = encodeAudioForAPI(audioData);
-        this.ws.send(JSON.stringify({
-          type: 'input_audio_buffer.append',
-          audio: base64Audio
-        }));
-        // Mark that we have new audio since the last commit
-        this.hasNewAudio = true;
-        // Track how much audio has been appended since last commit (samples)
-        this.appendedSamplesSinceLastCommit += audioData.length;
+        // Compute RMS for VAD
+        let sumSquares = 0;
+        for (let i = 0; i < audioData.length; i++) {
+          sumSquares += audioData[i] * audioData[i];
+        }
+        const rms = Math.sqrt(sumSquares / audioData.length);
+        
+        // VAD state machine
+        if (rms > this.START_THRESHOLD) {
+          if (!this.isSpeaking) {
+            console.log('Speech started (RMS:', rms.toFixed(4), ')');
+            this.isSpeaking = true;
+          }
+          this.silenceFrames = 0;
+        } else if (rms < this.STOP_THRESHOLD) {
+          this.silenceFrames++;
+          if (this.isSpeaking && this.silenceFrames >= this.SILENCE_FRAMES_THRESHOLD) {
+            console.log('Speech stopped (silence frames:', this.silenceFrames, ')');
+            this.isSpeaking = false;
+            this.silenceFrames = 0;
+          }
+        }
+        
+        // Only append audio when speaking
+        if (this.isSpeaking) {
+          const base64Audio = encodeAudioForAPI(audioData);
+          this.ws.send(JSON.stringify({
+            type: 'input_audio_buffer.append',
+            audio: base64Audio
+          }));
+          this.hasNewAudio = true;
+          this.appendedSamplesSinceLastCommit += audioData.length;
+        }
       }
     });
 
     await this.recorder.start();
-    // Reset counters
+    // Reset counters and VAD state
     this.appendedSamplesSinceLastCommit = 0;
+    this.isSpeaking = false;
+    this.silenceFrames = 0;
+    this.lastEmittedFragment = '';
+    this.lastEmitTime = 0;
+    
     // Start periodic commits to get incremental transcripts
     // Commit frequently but only when >=100ms of audio is buffered
     if (this.commitIntervalId) {
@@ -204,12 +279,13 @@ export class RealtimeVoiceService {
         this.hasNewAudio &&
         this.appendedSamplesSinceLastCommit >= this.MIN_COMMIT_SAMPLES
       ) {
+        console.log('Periodic commit (samples:', this.appendedSamplesSinceLastCommit, ')');
         this.ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
         this.hasNewAudio = false;
         this.appendedSamplesSinceLastCommit = 0;
       }
     }, 250);
-    console.log('Recording started');
+    console.log('Recording started with VAD');
   }
 
   stopRecording() {
@@ -223,14 +299,19 @@ export class RealtimeVoiceService {
       this.recorder = null;
       console.log('Recording stopped');
       
-      // Final commit to flush any remaining audio
-      if (this.ws && this.ws.readyState === WebSocket.OPEN && this.appendedSamplesSinceLastCommit > 0) {
+      // Final commit only if we have enough buffered audio
+      if (this.ws && 
+          this.ws.readyState === WebSocket.OPEN && 
+          this.appendedSamplesSinceLastCommit >= this.MIN_COMMIT_SAMPLES) {
         this.ws.send(JSON.stringify({
           type: 'input_audio_buffer.commit'
         }));
         this.appendedSamplesSinceLastCommit = 0;
-        console.log('Audio buffer committed for transcription');
+        console.log('Final audio buffer committed');
       }
+      // Reset VAD state
+      this.isSpeaking = false;
+      this.silenceFrames = 0;
     }
   }
 
