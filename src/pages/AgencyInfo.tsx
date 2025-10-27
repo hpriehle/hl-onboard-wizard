@@ -78,20 +78,22 @@ const AgencyInfo = () => {
       });
 
       // Create new agency record
-      const {
-        data: agency,
-        error
-      } = await supabase.from("agency").insert({
-        companyName: formData.agencyName,
-        whiteLabelDomain: formData.hlDomain,
-        website: formData.website,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone
-      } as any).select().single();
+      const { error } = await supabase
+        .from("agency")
+        .insert(
+          {
+            companyName: formData.agencyName,
+            whiteLabelDomain: formData.hlDomain,
+            website: formData.website,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            phone: formData.phone
+          } as any,
+          { returning: "minimal" }
+        );
       
-      console.log("Supabase response:", { agency, error });
+      console.log("Supabase insert result:", { error });
       
       if (error) {
         console.error("Error creating agency:", error);
@@ -100,10 +102,9 @@ const AgencyInfo = () => {
 
       // Store agency data for later steps
       localStorage.setItem("onboarding-agency", JSON.stringify(formData));
-      localStorage.setItem("agency-id", agency.id.toString());
 
       // Redirect to HighLevel OAuth
-      const oauthUrl = `https://marketplace.gohighlevel.com/oauth/chooselocation?response_type=code&redirect_uri=https%3A%2F%2Fn8n.omnirasystems.com%2Fwebhook%2Fomnira%2Fonboarding%2Foauth-agency&client_id=68d176bf618e21d1257ce060-mfvc0rs2&scope=users.write+users.readonly+custom-menu-link.write+custom-menu-link.readonly+twilioaccount.read+snapshots.write&version_id=68d176bf618e21d1257ce060&state=onboarding_app_${agency.id}`;
+      const oauthUrl = `https://marketplace.gohighlevel.com/oauth/chooselocation?response_type=code&redirect_uri=https%3A%2F%2Fn8n.omnirasystems.com%2Fwebhook%2Fomnira%2Fonboarding%2Foauth-agency&client_id=68d176bf618e21d1257ce060-mfvc0rs2&scope=users.write+users.readonly+custom-menu-link.write+custom-menu-link.readonly+twilioaccount.read+snapshots.write&version_id=68d176bf618e21d1257ce060&state=onboarding_app`;
       window.location.href = oauthUrl;
     } catch (error) {
       console.error("Error creating agency:", error);
