@@ -52,6 +52,7 @@ const ValueGuide = () => {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const companyId = searchParams.get("companyId");
+  const partnerId = searchParams.get("partnerId");
 
   const [responses, setResponses] = useState<Map<number, Response>>(new Map());
   const [currentQuestion, setCurrentQuestion] = useState(1);
@@ -129,12 +130,12 @@ const ValueGuide = () => {
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && recordingState === "recording") {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
       mediaRecorderRef.current.stop();
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
+    }
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
     }
   };
 
@@ -183,7 +184,7 @@ const ValueGuide = () => {
       description: "Proceeding to final step",
     });
 
-    navigate(`/connect-location?companyId=${companyId}`);
+    navigate(`/connect-location?companyId=${companyId}&partnerId=${partnerId}`);
   };
 
   const formatTime = (seconds: number) => {
