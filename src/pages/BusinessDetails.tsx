@@ -48,11 +48,15 @@ const BusinessDetails = () => {
 
     // Fetch agency data
     const fetchAgencyData = async () => {
+      console.log("Fetching agency data for companyId:", companyId);
+      
       const { data, error } = await supabase
         .from("agency")
         .select("companyName, website, firstName, lastName, email, phone")
         .eq("companyId", companyId)
         .maybeSingle();
+
+      console.log("Supabase response:", { data, error });
 
       if (error) {
         console.error("Error fetching agency data:", error);
@@ -65,6 +69,7 @@ const BusinessDetails = () => {
       }
 
       if (data) {
+        console.log("Setting form data with:", data);
         setFormData(prev => ({
           ...prev,
           legalName: data.companyName || "",
@@ -75,6 +80,8 @@ const BusinessDetails = () => {
           contactEmail: data.email || "",
           contactPhone: data.phone || ""
         }));
+      } else {
+        console.log("No agency data found for companyId:", companyId);
       }
     };
 
