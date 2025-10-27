@@ -2,50 +2,116 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { OnboardingLayout } from "@/components/OnboardingLayout";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Mic, StopCircle, Check, RotateCcw, ArrowRight, Lightbulb, Info } from "lucide-react";
+import { Mic, StopCircle, ArrowRight, Info, AlertCircle } from "lucide-react";
 
-interface Question {
+interface Section {
   id: number;
-  question: string;
-  tip: string;
+  title: string;
+  description: string;
+  suggestedQuestions: string[];
 }
 
-const QUESTIONS: Question[] = [
+const SECTIONS: Section[] = [
   {
     id: 1,
-    question: "What does your business do?",
-    tip: "Describe your core services and value proposition",
+    title: "Why You Give a Damn (Genuine Curiosity)",
+    description: "Share your genuine connection to the business owners you serve",
+    suggestedQuestions: [
+      "What personal experience makes you care about these business owners?",
+      "What specific observation about their business triggered your outreach?",
+      "What future do you genuinely want for them?"
+    ]
   },
   {
     id: 2,
-    question: "Who are your ideal customers?",
-    tip: "Think demographics, industries, and target market",
+    title: "Why You're Not Some Random Person (Authority Building)",
+    description: "Establish your credibility and expertise",
+    suggestedQuestions: [
+      "What gives you the right to contact them?",
+      "What unique access/insight do you have?",
+      "What track record proves you deliver?"
+    ]
   },
   {
     id: 3,
-    question: "What problems do you solve for your customers?",
-    tip: "Focus on pain points and the outcomes you deliver",
+    title: "Why You're the Smartest Person in Their Orbit Right Now",
+    description: "Demonstrate your unique knowledge and perspective",
+    suggestedQuestions: [
+      "What do you know that they don't?",
+      "What pattern have you spotted they're missing?",
+      "What's your contrarian insight?"
+    ]
   },
   {
     id: 4,
-    question: "What makes your business unique?",
-    tip: "Highlight your competitive advantages and differentiators",
-  },
-  {
-    id: 5,
-    question: "What are your business goals for the next year?",
-    tip: "Think about growth targets, expansion, or new offerings",
-  },
+    title: "Why They'd Be Crazy Not to Listen",
+    description: "Create urgency and demonstrate immediate value",
+    suggestedQuestions: [
+      "What's happening RIGHT NOW that creates urgency?",
+      "What specific cost of inaction exists?",
+      "What's the smallest ask that gives massive value?"
+    ]
+  }
 ];
 
-interface Response {
-  questionId: number;
-  transcription: string;
-  duration: number;
-}
+// Web Speech API Service
+class SpeechRecognitionService {
+  private recognition: any;
+  private isSupported: boolean;
 
-type RecordingState = "idle" | "recording" | "processing" | "complete";
+  constructor() {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    this.isSupported = !!SpeechRecognition;
+    
+    if (this.isSupported) {
+      this.recognition = new SpeechRecognition();
+      this.recognition.continuous = true;
+      this.recognition.interimResults = true;
+      this.recognition.lang = 'en-US';
+    }
+  }
+
+  start(onResult: (transcript: string, isFinal: boolean) => void, onError: (error: string) => void) {
+    if (!this.isSupported) {
+      onError('Speech recognition is not supported in this browser');
+      return;
+    }
+
+    this.recognition.onresult = (event: any) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + ' ';
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      onResult(finalTranscript || interimTranscript, !!finalTranscript);
+    };
+
+    this.recognition.onerror = (event: any) => {
+      onError(event.error);
+    };
+
+    this.recognition.start();
+  }
+
+  stop() {
+    if (this.recognition) {
+      this.recognition.stop();
+    }
+  }
+
+  isAvailable() {
+    return this.isSupported;
+  }
+}
 
 const ValueGuide = () => {
   const navigate = useNavigate();
@@ -54,14 +120,12 @@ const ValueGuide = () => {
   const companyId = searchParams.get("companyId");
   const partnerId = searchParams.get("partnerId");
 
-  const [responses, setResponses] = useState<Map<number, Response>>(new Map());
-  const [currentQuestion, setCurrentQuestion] = useState(1);
-  const [recordingState, setRecordingState] = useState<RecordingState>("idle");
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [transcription, setTranscription] = useState("");
-
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [currentSection, setCurrentSection] = useState(1);
+  const [sectionResponses, setSectionResponses] = useState<Map<number, string>>(new Map());
+  const [isRecording, setIsRecording] = useState(false);
+  const [currentTranscript, setCurrentTranscript] = useState("");
+  const [fullTranscript, setFullTranscript] = useState("");
+  const recognitionServiceRef = useRef<SpeechRecognitionService | null>(null);
 
   useEffect(() => {
     if (!companyId) {
@@ -70,286 +134,262 @@ const ValueGuide = () => {
   }, [companyId, navigate]);
 
   useEffect(() => {
+    recognitionServiceRef.current = new SpeechRecognitionService();
+    
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      stopRecording();
+      recognitionServiceRef.current?.stop();
     };
   }, []);
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
+  // Load saved response when changing sections
+  useEffect(() => {
+    const savedResponse = sectionResponses.get(currentSection);
+    if (savedResponse) {
+      setFullTranscript(savedResponse);
+    } else {
+      setFullTranscript("");
+    }
+    setCurrentTranscript("");
+  }, [currentSection, sectionResponses]);
 
-      const audioChunks: Blob[] = [];
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
-      };
+  const toggleRecording = () => {
+    if (isRecording) {
+      // Stop recording
+      recognitionServiceRef.current?.stop();
+      setIsRecording(false);
+      setFullTranscript(prev => (prev + ' ' + currentTranscript).trim());
+      setCurrentTranscript("");
+      
+      toast({
+        title: "Recording Stopped",
+        description: "You can now edit your response",
+      });
+    } else {
+      // Start recording
+      if (!recognitionServiceRef.current?.isAvailable()) {
+        toast({
+          title: "Not Supported",
+          description: "Speech recognition is not supported in your browser. Please use Chrome or Edge.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-        
-        // Simulate transcription process
-        setRecordingState("processing");
-        
-        // Mock transcription - in production, this would call a speech-to-text API
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        const mockTranscription = `This is a simulated transcription for question ${currentQuestion}. 
-          In production, this would be the actual transcribed text from your voice recording. 
-          The recording lasted ${recordingTime} seconds.`;
-        
-        setTranscription(mockTranscription);
-        setRecordingState("complete");
-        
-        // Cleanup
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      mediaRecorder.start();
-      setRecordingState("recording");
-      setRecordingTime(0);
-
-      // Start timer
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
+      setIsRecording(true);
+      recognitionServiceRef.current?.start(
+        (transcript, isFinal) => {
+          if (isFinal) {
+            setFullTranscript(prev => (prev + ' ' + transcript).trim());
+            setCurrentTranscript("");
+          } else {
+            setCurrentTranscript(transcript);
+          }
+        },
+        (error) => {
+          console.error('Speech recognition error:', error);
+          setIsRecording(false);
+          toast({
+            title: "Recognition Error",
+            description: "Failed to recognize speech. Please try again.",
+            variant: "destructive",
+          });
+        }
+      );
 
       toast({
         title: "Recording Started",
-        description: "Speak clearly into your microphone",
-      });
-    } catch (error) {
-      toast({
-        title: "Microphone Access Denied",
-        description: "Please enable microphone permissions to record",
-        variant: "destructive",
+        description: "Speak clearly - your words will appear below",
       });
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-      mediaRecorderRef.current.stop();
-    }
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  };
-
-  const acceptResponse = () => {
-    const response: Response = {
-      questionId: currentQuestion,
-      transcription,
-      duration: recordingTime,
-    };
-
-    setResponses(prev => new Map(prev).set(currentQuestion, response));
+  const handleNext = () => {
+    const trimmedTranscript = fullTranscript.trim();
     
-    toast({
-      title: "Response Saved",
-      description: `Question ${currentQuestion} completed`,
-    });
-
-    // Move to next question or finish
-    if (currentQuestion < QUESTIONS.length) {
-      setCurrentQuestion(prev => prev + 1);
-      resetRecording();
-    }
-  };
-
-  const resetRecording = () => {
-    setRecordingState("idle");
-    setRecordingTime(0);
-    setTranscription("");
-  };
-
-  const handleComplete = () => {
-    if (responses.size < QUESTIONS.length) {
+    if (!trimmedTranscript) {
       toast({
-        title: "Incomplete",
-        description: "Please answer all questions before proceeding",
+        title: "Response Required",
+        description: "Please provide a response before continuing",
         variant: "destructive",
       });
       return;
     }
 
-    // Save responses
-    localStorage.setItem("onboarding-responses", JSON.stringify(Array.from(responses.entries())));
+    // Save current section response
+    setSectionResponses(prev => new Map(prev).set(currentSection, trimmedTranscript));
+    
+    if (currentSection < SECTIONS.length) {
+      // Move to next section
+      setCurrentSection(prev => prev + 1);
+      
+      toast({
+        title: "Section Complete",
+        description: `Moving to section ${currentSection + 1}`,
+      });
+    } else {
+      // Submit - navigate to OAuth
+      handleSubmit(trimmedTranscript);
+    }
+  };
 
+  const handleSubmit = (finalTranscript: string) => {
+    // Save all responses including the current one
+    const allResponses = new Map(sectionResponses).set(currentSection, finalTranscript);
+    
+    const responsesObject = Object.fromEntries(
+      Array.from(allResponses.entries()).map(([id, text]) => [
+        SECTIONS[id - 1].title,
+        text
+      ])
+    );
+    
+    localStorage.setItem("value-guide-responses", JSON.stringify(responsesObject));
+    
     toast({
-      title: "Value Guide Complete",
-      description: "Proceeding to final step",
+      title: "Value Guide Complete!",
+      description: "Proceeding to connect your location",
     });
-
+    
+    // Navigate to OAuth link (to be provided)
     navigate(`/connect-location?companyId=${companyId}&partnerId=${partnerId}`);
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  const currentQuestionData = QUESTIONS[currentQuestion - 1];
-  const isQuestionAnswered = responses.has(currentQuestion);
+  const currentSectionData = SECTIONS[currentSection - 1];
+  const displayText = fullTranscript + (currentTranscript ? ' ' + currentTranscript : '');
 
   return (
     <OnboardingLayout
       currentStep={3}
-      title="Tell Us About Your Business"
-      subtitle="Answer the following questions by recording your voice responses"
+      title="Value Guide"
+      subtitle="Tell us about your business in your own words"
     >
       <div className="space-y-6">
-        <div className="bg-accent p-4 rounded-lg flex items-start gap-3">
+        {/* Browser Support Info */}
+        {!recognitionServiceRef.current?.isAvailable() && (
+          <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-lg flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-destructive mb-1">Browser Not Supported</p>
+              <p className="text-sm text-muted-foreground">
+                Speech recognition requires Chrome or Edge browser. You can still type your responses manually.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="bg-accent/50 p-4 rounded-lg flex items-start gap-3">
           <Info className="w-5 h-5 text-accent-foreground mt-0.5 flex-shrink-0" />
           <p className="text-sm text-accent-foreground">
-            Click the microphone button to start recording. We'll transcribe your response in real-time.
-            Speak naturally and take your time with each answer.
+            Click the microphone to record your response. Your words will appear in real-time. 
+            You can stop anytime and edit the text manually.
           </p>
         </div>
 
-        {/* Question Progress */}
-        <div className="flex justify-center gap-2">
-          {QUESTIONS.map((q) => (
-            <button
-              key={q.id}
-              onClick={() => setCurrentQuestion(q.id)}
+        {/* Section Progress */}
+        <div className="flex justify-center gap-3">
+          {SECTIONS.map((section) => (
+            <div
+              key={section.id}
               className={`
-                w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all
-                ${responses.has(q.id) 
-                  ? 'bg-success text-success-foreground' 
-                  : q.id === currentQuestion
-                  ? 'bg-primary text-primary-foreground'
+                w-12 h-12 rounded-full flex items-center justify-center font-semibold transition-all
+                ${sectionResponses.has(section.id) 
+                  ? 'bg-primary text-primary-foreground shadow-lg' 
+                  : section.id === currentSection
+                  ? 'bg-primary text-primary-foreground ring-4 ring-primary/20'
                   : 'bg-muted text-muted-foreground'
                 }
               `}
             >
-              {responses.has(q.id) ? <Check className="w-5 h-5" /> : q.id}
-            </button>
+              {section.id}
+            </div>
           ))}
         </div>
 
-        {/* Two Column Layout */}
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Left Column - Question */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">
-                Question {currentQuestion}:
-              </h3>
-              <p className="text-lg text-foreground">
-                {currentQuestionData.question}
-              </p>
-            </div>
-
-            <div className="bg-muted p-4 rounded-lg flex items-start gap-3">
-              <Lightbulb className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-foreground mb-1">Tip:</p>
-                <p className="text-sm text-muted-foreground">
-                  {currentQuestionData.tip}
-                </p>
-              </div>
-            </div>
+        {/* Current Section */}
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-2xl font-bold text-foreground mb-2">
+              Section {currentSection}: {currentSectionData.title}
+            </h3>
+            <p className="text-muted-foreground">
+              {currentSectionData.description}
+            </p>
           </div>
 
-          {/* Right Column - Recording Interface */}
-          <div className="space-y-4">
-            {/* Recording Button */}
-            {recordingState === "idle" && !isQuestionAnswered && (
-              <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                <Button
-                  onClick={startRecording}
-                  size="lg"
-                  className="w-24 h-24 rounded-full bg-gradient-primary hover:opacity-90 shadow-lg"
-                >
-                  <Mic className="w-10 h-10" />
-                </Button>
-                <p className="text-sm text-muted-foreground">Click to record response</p>
-              </div>
-            )}
-
-            {/* Recording Active */}
-            {recordingState === "recording" && (
-              <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                <div className="relative">
-                  <Button
-                    onClick={stopRecording}
-                    size="lg"
-                    className="w-24 h-24 rounded-full bg-destructive hover:bg-destructive/90"
-                  >
-                    <StopCircle className="w-10 h-10" />
-                  </Button>
-                  <div className="absolute -inset-2 rounded-full bg-destructive/20 animate-pulse-slow" />
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-destructive mb-1">● REC</p>
-                  <p className="text-lg font-mono">{formatTime(recordingTime)}</p>
-                  <p className="text-sm text-muted-foreground mt-2">Recording...</p>
-                </div>
-              </div>
-            )}
-
-            {/* Processing */}
-            {recordingState === "processing" && (
-              <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm text-muted-foreground">Transcribing your response...</p>
-              </div>
-            )}
-
-            {/* Complete/Transcription */}
-            {(recordingState === "complete" || isQuestionAnswered) && (
-              <div className="space-y-4">
-                <div className="bg-muted p-4 rounded-lg max-h-48 overflow-y-auto">
-                  <p className="text-sm text-foreground whitespace-pre-wrap">
-                    {isQuestionAnswered 
-                      ? responses.get(currentQuestion)?.transcription 
-                      : transcription
-                    }
-                  </p>
-                </div>
-
-                {!isQuestionAnswered && (
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={resetRecording}
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      <RotateCcw className="w-4 h-4 mr-2" />
-                      Re-record
-                    </Button>
-                    <Button
-                      onClick={acceptResponse}
-                      className="flex-1 bg-success hover:bg-success/90"
-                    >
-                      <Check className="w-4 h-4 mr-2" />
-                      Accept
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
+          {/* Suggested Questions */}
+          <div className="bg-accent/30 p-5 rounded-lg border border-accent">
+            <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+              <span className="text-primary">💡</span>
+              Consider these questions:
+            </h4>
+            <ul className="space-y-2">
+              {currentSectionData.suggestedQuestions.map((q, i) => (
+                <li key={i} className="text-sm text-foreground flex items-start gap-2">
+                  <span className="text-primary mt-1">•</span>
+                  <span>{q}</span>
+                </li>
+              ))}
+            </ul>
           </div>
+
+          {/* Textarea with real-time transcription */}
+          <div>
+            <label className="text-sm font-medium text-foreground mb-2 block">
+              Your Response
+            </label>
+            <Textarea 
+              value={displayText}
+              onChange={(e) => setFullTranscript(e.target.value)}
+              placeholder={isRecording ? "Listening... speak now" : "Click the microphone to start recording, or type your response here..."}
+              className="min-h-[200px] text-base"
+              disabled={isRecording}
+            />
+          </div>
+
+          {/* Recording Button */}
+          <div className="flex justify-center py-4">
+            <Button
+              onClick={toggleRecording}
+              size="lg"
+              disabled={!recognitionServiceRef.current?.isAvailable()}
+              className={`
+                w-20 h-20 rounded-full transition-all shadow-lg
+                ${isRecording 
+                  ? 'bg-destructive hover:bg-destructive/90 animate-pulse' 
+                  : 'bg-primary hover:bg-primary/90'
+                }
+              `}
+            >
+              {isRecording ? (
+                <StopCircle className="w-10 h-10" />
+              ) : (
+                <Mic className="w-10 h-10" />
+              )}
+            </Button>
+          </div>
+
+          {isRecording && (
+            <p className="text-center text-sm text-muted-foreground animate-pulse">
+              🎤 Recording in progress...
+            </p>
+          )}
+
+          {/* Navigation Button */}
+          <Button
+            onClick={handleNext}
+            disabled={!fullTranscript.trim() || isRecording}
+            size="lg"
+            className="w-full text-lg py-6 bg-primary hover:bg-primary/90"
+          >
+            {currentSection === SECTIONS.length ? "Submit & Continue" : "Next Section"}
+            <ArrowRight className="w-5 h-5 ml-2" />
+          </Button>
+
+          <p className="text-sm text-center text-muted-foreground">
+            Section {currentSection} of {SECTIONS.length}
+            {sectionResponses.size > 0 && ` • ${sectionResponses.size} completed`}
+          </p>
         </div>
-
-        {/* Complete Button */}
-        <Button
-          onClick={handleComplete}
-          disabled={responses.size < QUESTIONS.length}
-          className="w-full bg-gradient-primary hover:opacity-90 text-white font-semibold py-6 text-lg mt-8"
-        >
-          Complete Business Value Guide
-          <ArrowRight className="w-5 h-5 ml-2" />
-        </Button>
-
-        <p className="text-sm text-center text-muted-foreground">
-          {responses.size} of {QUESTIONS.length} questions completed
-        </p>
       </div>
     </OnboardingLayout>
   );
