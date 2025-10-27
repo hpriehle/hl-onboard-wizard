@@ -280,13 +280,13 @@ const ValueGuide = () => {
           </div>
 
           {/* Recording Button */}
-          <div className="flex justify-center py-4">
+          <div className="flex justify-center py-2">
             <Button
               onClick={toggleRecording}
               size="lg"
               disabled={isConnecting}
               className={`
-                w-20 h-20 rounded-full transition-all shadow-lg
+                w-16 h-16 rounded-full transition-all shadow-lg
                 ${isRecording 
                   ? 'bg-destructive hover:bg-destructive/90 animate-pulse' 
                   : 'bg-primary hover:bg-primary/90'
@@ -294,11 +294,11 @@ const ValueGuide = () => {
               `}
             >
               {isConnecting ? (
-                <div className="w-10 h-10 border-4 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
               ) : isRecording ? (
-                <StopCircle className="w-10 h-10" />
+                <StopCircle className="w-8 h-8" />
               ) : (
-                <Mic className="w-10 h-10" />
+                <Mic className="w-8 h-8" />
               )}
             </Button>
           </div>
