@@ -36,8 +36,8 @@ const AgencyInfo = () => {
     if (formData.agencyName.length < 2) {
       newErrors.agencyName = "Agency name must be at least 2 characters";
     }
-    if (!formData.hlDomain.includes(".gohighlevel.com")) {
-      newErrors.hlDomain = "Please enter a valid HighLevel domain";
+    if (!formData.hlDomain.trim()) {
+      newErrors.hlDomain = "Please enter your white-label domain";
     }
     if (!formData.website.startsWith("http")) {
       newErrors.website = "Website must start with http:// or https://";
