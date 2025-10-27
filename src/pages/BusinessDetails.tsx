@@ -120,12 +120,12 @@ const BusinessDetails = () => {
             <Label htmlFor="legalName">
               Company Name <span className="text-destructive">*</span>
             </Label>
-            <Input id="legalName" value={formData.legalName} onChange={e => updateField("legalName", e.target.value)} placeholder="As registered with government" required />
+            <Input id="legalName" value={formData.legalName} onChange={e => updateField("legalName", e.target.value)} placeholder="Name" required />
           </div>
 
           <div>
             <Label htmlFor="llcName">Company LLC Name</Label>
-            <Input id="llcName" value={formData.llcName} onChange={e => updateField("llcName", e.target.value)} placeholder="If applicable" />
+            <Input id="llcName" value={formData.llcName} onChange={e => updateField("llcName", e.target.value)} placeholder="As registered" />
           </div>
 
           <div>
