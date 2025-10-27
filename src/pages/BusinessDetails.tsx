@@ -108,7 +108,7 @@ const BusinessDetails = () => {
       [field]: value
     }));
   };
-  return <OnboardingLayout currentStep={2} title="Business & Account Details" subtitle="We need some additional information to set up your account">
+  return <OnboardingLayout currentStep={2} title="Business & Account Details" subtitle="Fill in your business subaccount information">
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Twilio Section */}
         <div className="space-y-4">
