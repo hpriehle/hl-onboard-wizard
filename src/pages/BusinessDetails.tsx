@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, Info } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 const BusinessDetails = () => {
   const navigate = useNavigate();
   const {
@@ -42,7 +43,42 @@ const BusinessDetails = () => {
         variant: "destructive"
       });
       navigate("/");
+      return;
     }
+
+    // Fetch agency data
+    const fetchAgencyData = async () => {
+      const { data, error } = await supabase
+        .from("agency")
+        .select("companyName, website, firstName, lastName, email, phone")
+        .eq("companyId", companyId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error fetching agency data:", error);
+        toast({
+          title: "Warning",
+          description: "Could not load agency information",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data) {
+        setFormData(prev => ({
+          ...prev,
+          legalName: data.companyName || "",
+          businessWebsite: data.website || "",
+          contactName: data.firstName && data.lastName 
+            ? `${data.firstName} ${data.lastName}` 
+            : "",
+          contactEmail: data.email || "",
+          contactPhone: data.phone || ""
+        }));
+      }
+    };
+
+    fetchAgencyData();
   }, [companyId, navigate, toast]);
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
