@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Mic, StopCircle, ArrowRight, Info, AlertCircle } from "lucide-react";
+import { RealtimeVoiceService } from "@/utils/RealtimeVoice";
 
 interface Section {
   id: number;
@@ -56,155 +57,6 @@ const SECTIONS: Section[] = [
   }
 ];
 
-// Web Speech API Service
-class SpeechRecognitionService {
-  private recognition: any;
-  private isSupported: boolean;
-  private shouldContinue = false;
-  private retryCount = 0;
-  private maxRetries = 3;
-  private onFatalError: ((error: string) => void) | null = null;
-
-  constructor() {
-    try {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      this.isSupported = !!SpeechRecognition;
-      
-      console.log('Speech Recognition available:', this.isSupported);
-      console.log('SpeechRecognition:', (window as any).SpeechRecognition);
-      console.log('webkitSpeechRecognition:', (window as any).webkitSpeechRecognition);
-      
-      if (this.isSupported) {
-        this.recognition = new SpeechRecognition();
-        this.recognition.continuous = true; // Chrome may still end; we'll auto-restart
-        this.recognition.interimResults = true;
-        this.recognition.lang = 'en-US';
-        console.log('Speech Recognition initialized successfully');
-      } else {
-        console.error('Speech Recognition not available in this browser');
-      }
-    } catch (error) {
-      console.error('Error initializing Speech Recognition:', error);
-      this.isSupported = false;
-    }
-  }
-
-  start(onResult: (transcript: string, isFinal: boolean) => void, onError: (error: string) => void) {
-    if (!this.isSupported) {
-      console.error('Cannot start: Speech recognition is not supported');
-      onError('Speech recognition is not supported in this browser');
-      return;
-    }
-
-    this.shouldContinue = true;
-    this.retryCount = 0;
-    this.onFatalError = onError;
-
-    try {
-      this.recognition.onresult = (event: any) => {
-        this.retryCount = 0; // Reset retry count on successful result
-        let interimTranscript = '';
-        let finalTranscript = '';
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript + ' ';
-          } else {
-            interimTranscript += transcript;
-          }
-        }
-
-        onResult(finalTranscript || interimTranscript, !!finalTranscript);
-      };
-
-      this.recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-        
-        // Auto-recover from common non-fatal errors with retry limit
-        if (['no-speech', 'audio-capture', 'network', 'aborted'].includes(event.error)) {
-          this.retryCount++;
-          
-          if (this.retryCount > this.maxRetries) {
-            console.error(`Max retries (${this.maxRetries}) exceeded for error: ${event.error}`);
-            this.shouldContinue = false;
-            
-            let userMessage = 'Speech recognition failed after multiple attempts. ';
-            if (event.error === 'network') {
-              userMessage += 'Network connectivity issue. Please check your connection or use OpenAI Realtime API for better reliability.';
-            } else if (event.error === 'no-speech') {
-              userMessage += 'No speech detected. Please speak clearly into your microphone.';
-            } else if (event.error === 'audio-capture') {
-              userMessage += 'Microphone access issue. Please check your microphone permissions.';
-            } else {
-              userMessage += 'Please try again or type your response manually.';
-            }
-            
-            onError(userMessage);
-            return;
-          }
-          
-          if (this.shouldContinue) {
-            console.log(`Recoverable error (${event.error}). Retry ${this.retryCount}/${this.maxRetries}`);
-            try { this.recognition.stop(); } catch (_) {}
-            // Let onend trigger the restart
-          }
-          return; // do not bubble to UI toast for recoverable errors under retry limit
-        }
-        
-        // Fatal errors
-        this.shouldContinue = false;
-        onError(event.error);
-      };
-
-      this.recognition.onstart = () => {
-        console.log('Speech recognition started');
-      };
-
-      this.recognition.onend = () => {
-        console.log('Speech recognition ended');
-        if (this.shouldContinue && this.retryCount <= this.maxRetries) {
-          // Chrome often ends even in continuous mode; restart to keep listening
-          try {
-            console.log('Auto-restarting speech recognition...');
-            this.recognition.start();
-          } catch (e) {
-            console.warn('Immediate restart failed, retrying shortly...', e);
-            setTimeout(() => {
-              if (this.shouldContinue && this.retryCount <= this.maxRetries) {
-                try { this.recognition.start(); } catch (err) { console.error('Restart error:', err); }
-              }
-            }, 300);
-          }
-        }
-      };
-
-      console.log('Starting speech recognition...');
-      this.recognition.start();
-    } catch (error) {
-      console.error('Error starting speech recognition:', error);
-      onError(error instanceof Error ? error.message : 'Failed to start recognition');
-    }
-  }
-
-  stop() {
-    this.shouldContinue = false;
-    if (this.recognition) {
-      try {
-        this.recognition.stop();
-      } catch (_) {}
-      try {
-        this.recognition.abort();
-      } catch (_) {}
-      console.log('Speech recognition stopped');
-    }
-  }
-
-  isAvailable() {
-    return this.isSupported;
-  }
-}
-
 const ValueGuide = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -217,8 +69,8 @@ const ValueGuide = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [currentTranscript, setCurrentTranscript] = useState("");
   const [fullTranscript, setFullTranscript] = useState("");
-  const [speechSupported, setSpeechSupported] = useState<boolean | null>(null);
-  const recognitionServiceRef = useRef<SpeechRecognitionService | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const voiceServiceRef = useRef<RealtimeVoiceService | null>(null);
 
   useEffect(() => {
     if (!companyId) {
@@ -227,13 +79,31 @@ const ValueGuide = () => {
   }, [companyId, navigate]);
 
   useEffect(() => {
-    recognitionServiceRef.current = new SpeechRecognitionService();
-    setSpeechSupported(recognitionServiceRef.current?.isAvailable() ?? false);
+    // Initialize Realtime Voice Service
+    voiceServiceRef.current = new RealtimeVoiceService(
+      (transcript, isFinal) => {
+        if (isFinal) {
+          setFullTranscript(prev => (prev + ' ' + transcript).trim());
+          setCurrentTranscript("");
+        } else {
+          setCurrentTranscript(transcript);
+        }
+      },
+      (error) => {
+        console.error('Voice service error:', error);
+        setIsRecording(false);
+        toast({
+          title: "Error",
+          description: error,
+          variant: "destructive",
+        });
+      }
+    );
     
     return () => {
-      recognitionServiceRef.current?.stop();
+      voiceServiceRef.current?.disconnect();
     };
-  }, []);
+  }, [toast]);
 
   // Load saved response when changing sections
   useEffect(() => {
@@ -246,10 +116,10 @@ const ValueGuide = () => {
     setCurrentTranscript("");
   }, [currentSection, sectionResponses]);
 
-  const toggleRecording = () => {
+  const toggleRecording = async () => {
     if (isRecording) {
       // Stop recording
-      recognitionServiceRef.current?.stop();
+      voiceServiceRef.current?.stopRecording();
       setIsRecording(false);
       setFullTranscript(prev => (prev + ' ' + currentTranscript).trim());
       setCurrentTranscript("");
@@ -260,40 +130,34 @@ const ValueGuide = () => {
       });
     } else {
       // Start recording
-      if (!recognitionServiceRef.current?.isAvailable()) {
+      try {
+        setIsConnecting(true);
+        
+        // Connect to WebSocket if not already connected
+        if (!voiceServiceRef.current) {
+          throw new Error("Voice service not initialized");
+        }
+        
+        await voiceServiceRef.current.connect();
+        await voiceServiceRef.current.startRecording();
+        
+        setIsRecording(true);
+        setIsConnecting(false);
+        
         toast({
-          title: "Not Supported",
-          description: "Speech recognition is not supported in your browser. Please use Chrome or Edge.",
+          title: "Recording Started",
+          description: "Speak clearly - your words will appear in real-time",
+        });
+      } catch (error) {
+        console.error('Failed to start recording:', error);
+        setIsRecording(false);
+        setIsConnecting(false);
+        toast({
+          title: "Connection Failed",
+          description: error instanceof Error ? error.message : "Failed to connect to voice service",
           variant: "destructive",
         });
-        return;
       }
-
-      setIsRecording(true);
-      recognitionServiceRef.current?.start(
-        (transcript, isFinal) => {
-          if (isFinal) {
-            setFullTranscript(prev => (prev + ' ' + transcript).trim());
-            setCurrentTranscript("");
-          } else {
-            setCurrentTranscript(transcript);
-          }
-        },
-        (error) => {
-          console.error('Speech recognition error:', error);
-          setIsRecording(false);
-          toast({
-            title: "Recognition Error",
-            description: "Failed to recognize speech. Please try again.",
-            variant: "destructive",
-          });
-        }
-      );
-
-      toast({
-        title: "Recording Started",
-        description: "Speak clearly - your words will appear below",
-      });
     }
   };
 
@@ -358,23 +222,12 @@ const ValueGuide = () => {
       subtitle="Tell us about your business in your own words"
     >
       <div className="space-y-6">
-        {/* Browser Support Info */}
-        {speechSupported === false && (
-          <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-destructive mb-1">Browser Not Supported</p>
-              <p className="text-sm text-muted-foreground">
-                Speech recognition requires Chrome or Edge browser. You can still type your responses manually.
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Browser Support Info - Removed since OpenAI Realtime works in all browsers */}
 
         <div className="bg-accent/50 p-4 rounded-lg flex items-start gap-3">
           <Info className="w-5 h-5 text-accent-foreground mt-0.5 flex-shrink-0" />
           <p className="text-sm text-accent-foreground">
-            Click the microphone to record your response. Your words will appear in real-time. 
+            Click the microphone to record your response. Your words will appear in real-time using OpenAI's advanced speech recognition.
             You can stop anytime and edit the text manually.
           </p>
         </div>
@@ -445,7 +298,7 @@ const ValueGuide = () => {
             <Button
               onClick={toggleRecording}
               size="lg"
-              disabled={speechSupported === false}
+              disabled={isConnecting}
               className={`
                 w-20 h-20 rounded-full transition-all shadow-lg
                 ${isRecording 
@@ -454,7 +307,9 @@ const ValueGuide = () => {
                 }
               `}
             >
-              {isRecording ? (
+              {isConnecting ? (
+                <div className="w-10 h-10 border-4 border-white border-t-transparent rounded-full animate-spin" />
+              ) : isRecording ? (
                 <StopCircle className="w-10 h-10" />
               ) : (
                 <Mic className="w-10 h-10" />

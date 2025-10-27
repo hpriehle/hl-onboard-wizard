@@ -2,3 +2,6 @@ project_id = "skqjlrryaravvqdphkov"
 
 [functions.create-partner]
 verify_jwt = false
+
+[functions.realtime-voice]
+verify_jwt = false
