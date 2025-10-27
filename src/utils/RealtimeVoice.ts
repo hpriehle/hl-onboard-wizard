@@ -208,19 +208,6 @@ export class RealtimeVoiceService {
 
           if (data.type === 'input_audio_buffer.speech_stopped') {
             console.log('User stopped speaking');
-            // Only commit if we have enough buffered audio (>=100ms)
-            if (this.ws && 
-                this.ws.readyState === WebSocket.OPEN && 
-                this.appendedSamplesSinceLastCommit >= this.MIN_COMMIT_SAMPLES) {
-              try {
-                this.ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
-                this.appendedSamplesSinceLastCommit = 0;
-                this.hasNewAudio = false;
-                console.log('Committed on speech_stopped');
-              } catch (e) {
-                console.error('Failed to commit on speech_stopped', e);
-              }
-            }
           }
 
           if (data.type === 'error') {
@@ -313,25 +300,8 @@ export class RealtimeVoiceService {
     this.lastEmitTime = 0;
     this.firstAudioChunk = true;
     
-    // Start periodic commits to get incremental transcripts
-    // Commit frequently but only when >=100ms of audio is buffered
-    if (this.commitIntervalId) {
-      clearInterval(this.commitIntervalId);
-    }
-    this.commitIntervalId = window.setInterval(() => {
-      if (
-        this.ws &&
-        this.ws.readyState === WebSocket.OPEN &&
-        this.hasNewAudio &&
-        this.appendedSamplesSinceLastCommit >= this.MIN_COMMIT_SAMPLES
-      ) {
-        console.log('Periodic commit (samples:', this.appendedSamplesSinceLastCommit, ')');
-        this.ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
-        this.hasNewAudio = false;
-        this.appendedSamplesSinceLastCommit = 0;
-      }
-    }, 250);
-    console.log('Recording started with VAD');
+    // Server-side VAD handles committing; send continuous audio only
+    console.log('Recording started');
   }
 
   stopRecording() {
@@ -345,16 +315,7 @@ export class RealtimeVoiceService {
       this.recorder = null;
       console.log('Recording stopped');
       
-      // Final commit only if we have enough buffered audio
-      if (this.ws && 
-          this.ws.readyState === WebSocket.OPEN && 
-          this.appendedSamplesSinceLastCommit >= this.MIN_COMMIT_SAMPLES) {
-        this.ws.send(JSON.stringify({
-          type: 'input_audio_buffer.commit'
-        }));
-        this.appendedSamplesSinceLastCommit = 0;
-        console.log('Final audio buffer committed');
-      }
+      // No final commit when using server-side VAD
       // Reset VAD state
       this.isSpeaking = false;
       this.silenceFrames = 0;

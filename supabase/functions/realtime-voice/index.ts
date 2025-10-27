@@ -84,10 +84,15 @@ serve(async (req) => {
             instructions: "Only transcribe exactly what the user says. Do not generate responses.",
             input_audio_format: "pcm16",
             input_audio_transcription: {
-              model: "gpt-4o-mini-transcribe",  // Pin to specific transcription model
-              language: "en"  // Pin to English to prevent language switching
+              model: "gpt-4o-mini-transcribe",
+              language: "en"
             },
-            turn_detection: null,  // Disable automatic turn detection/responses
+            turn_detection: {
+              type: "server_vad",
+              threshold: 0.5,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 700
+            },
           }
         };
         
