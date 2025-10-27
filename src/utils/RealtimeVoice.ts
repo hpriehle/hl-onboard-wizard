@@ -223,39 +223,37 @@ export class RealtimeVoiceService {
 
     this.recorder = new AudioRecorder((audioData) => {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        // Compute RMS for VAD
+        // Compute RMS for logging only (not filtering)
         let sumSquares = 0;
         for (let i = 0; i < audioData.length; i++) {
           sumSquares += audioData[i] * audioData[i];
         }
         const rms = Math.sqrt(sumSquares / audioData.length);
         
-        // VAD state machine
+        // VAD state machine for logging only
         if (rms > this.START_THRESHOLD) {
           if (!this.isSpeaking) {
-            console.log('Speech started (RMS:', rms.toFixed(4), ')');
+            console.log('Speech detected (RMS:', rms.toFixed(4), ')');
             this.isSpeaking = true;
           }
           this.silenceFrames = 0;
         } else if (rms < this.STOP_THRESHOLD) {
           this.silenceFrames++;
           if (this.isSpeaking && this.silenceFrames >= this.SILENCE_FRAMES_THRESHOLD) {
-            console.log('Speech stopped (silence frames:', this.silenceFrames, ')');
+            console.log('Silence detected (frames:', this.silenceFrames, ')');
             this.isSpeaking = false;
             this.silenceFrames = 0;
           }
         }
         
-        // Only append audio when speaking
-        if (this.isSpeaking) {
-          const base64Audio = encodeAudioForAPI(audioData);
-          this.ws.send(JSON.stringify({
-            type: 'input_audio_buffer.append',
-            audio: base64Audio
-          }));
-          this.hasNewAudio = true;
-          this.appendedSamplesSinceLastCommit += audioData.length;
-        }
+        // Send ALL audio continuously - let Whisper handle speech detection
+        const base64Audio = encodeAudioForAPI(audioData);
+        this.ws.send(JSON.stringify({
+          type: 'input_audio_buffer.append',
+          audio: base64Audio
+        }));
+        this.hasNewAudio = true;
+        this.appendedSamplesSinceLastCommit += audioData.length;
       }
     });
 
