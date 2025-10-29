@@ -169,14 +169,29 @@ const BusinessDetails = () => {
                 <Label htmlFor="twilioSid">
                   Twilio Account SID <span className="text-destructive">*</span>
                 </Label>
-                <Input id="twilioSid" value={formData.twilioSid} onChange={e => updateField("twilioSid", e.target.value)} placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" required={hasTwilio === "yes"} />
+                <Input 
+                  id="twilioSid" 
+                  value={formData.twilioSid} 
+                  onChange={e => updateField("twilioSid", e.target.value)} 
+                  placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
+                  required={hasTwilio === "yes"}
+                  autoComplete="off"
+                />
               </div>
 
               <div>
                 <Label htmlFor="twilioToken">
                   Twilio Auth Token <span className="text-destructive">*</span>
                 </Label>
-                <Input id="twilioToken" type="password" value={formData.twilioToken} onChange={e => updateField("twilioToken", e.target.value)} placeholder="••••••••••••••••••••••••••••••••" required={hasTwilio === "yes"} />
+                <Input 
+                  id="twilioToken" 
+                  type="text"
+                  value={formData.twilioToken} 
+                  onChange={e => updateField("twilioToken", e.target.value)} 
+                  placeholder="Enter your Twilio Auth Token" 
+                  required={hasTwilio === "yes"}
+                  autoComplete="off"
+                />
                 <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                   <Info className="w-4 h-4" />
                   <span>Your auth token will be encrypted and stored securely</span>
