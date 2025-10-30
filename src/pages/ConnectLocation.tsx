@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { OnboardingLayout } from "@/components/OnboardingLayout";
 import { Button } from "@/components/ui/button";
-import { Link2, Check, Loader2 } from "lucide-react";
+import { Link2, Check, Loader2, ExternalLink } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -283,17 +283,57 @@ const ConnectLocation = () => {
               variant="outline"
               className="w-full"
             >
-              Click here to Create a New Subaccount
+              Click Here to Create a New Subaccount Manually
+              <ExternalLink className="w-4 h-4 ml-2" />
             </Button>
           </div>
         )}
 
         {/* Show connect button after manual link is clicked */}
         {hasA2PNumbers === "yes" && creationFailed && manualLinkClicked && (
-          <Button onClick={handleConnect} className="w-full bg-gradient-primary hover:opacity-90 text-white font-semibold py-6 text-lg shadow-glow">
-            <Link2 className="w-5 h-5 mr-2" />
-            Install in New HighLevel Account
-          </Button>
+          <>
+            {/* Instructions */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-foreground">How to Connect Your Location:</h3>
+              
+              <div className="space-y-3">
+                {["Click the 'Connect Location' button below", "Select the specific HighLevel location where you want to use this app", "Review and authorize the permissions", "You'll be redirected to your dashboard once complete"].map((step, index) => (
+                  <div key={index} className="flex items-start gap-3 p-3 bg-accent rounded-lg">
+                    <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold flex-shrink-0">
+                      {index + 1}
+                    </div>
+                    <p className="text-foreground pt-1">{step}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Permissions */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center">
+                  <span className="text-sm">ℹ️</span>
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">
+                  What permissions does this app need?
+                </h3>
+              </div>
+              
+              <div className="bg-muted p-4 rounded-lg space-y-2">
+                {permissions.map((permission, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-success flex-shrink-0" />
+                    <span className="text-sm text-foreground">{permission}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Button onClick={handleConnect} className="w-full bg-gradient-primary hover:opacity-90 text-white font-semibold py-6 text-lg shadow-glow">
+              <Link2 className="w-5 h-5 mr-2" />
+              Install in New HighLevel Account
+            </Button>
+          </>
         )}
 
         {/* Show instructions after subaccount creation */}
