@@ -76,7 +76,8 @@ const BusinessDetails = () => {
         setAgencyName(data.nameTitle || "");
         setFormData(prev => ({
           ...prev,
-          legalName: data.nameTitle || "",
+          // Only pre-fill company name for agency flow (companyId), not for key flow
+          legalName: key ? "" : (data.nameTitle || ""),
           businessWebsite: data.website || "",
           contactFirstName: data.firstName || "",
           contactLastName: data.lastName || "",
