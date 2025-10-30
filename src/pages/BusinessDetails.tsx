@@ -152,7 +152,7 @@ const BusinessDetails = () => {
   };
   return <OnboardingLayout 
       currentStep={key ? 1 : 2} 
-      title="Business & Account Details" 
+      title="Account Details" 
       subtitle="Fill in your business information"
       customBrandName={key && agencyName ? agencyName : undefined}
       isKeyFlow={!!key}
