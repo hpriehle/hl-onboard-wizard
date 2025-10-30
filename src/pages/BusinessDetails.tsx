@@ -53,7 +53,7 @@ const BusinessDetails = () => {
       try {
         let query = supabase
           .from("agency")
-          .select("companyId, companyName, website, firstName, lastName, email, phone");
+          .select("companyId, nameTitle, website, firstName, lastName, email, phone");
 
         if (key) {
           query = query.eq("key", key);
@@ -73,10 +73,10 @@ const BusinessDetails = () => {
           return;
         }
 
-        setAgencyName(data.companyName || "");
+        setAgencyName(data.nameTitle || "");
         setFormData(prev => ({
           ...prev,
-          legalName: data.companyName || "",
+          legalName: data.nameTitle || "",
           businessWebsite: data.website || "",
           contactFirstName: data.firstName || "",
           contactLastName: data.lastName || "",

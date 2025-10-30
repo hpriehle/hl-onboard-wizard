@@ -61,12 +61,12 @@ const ValueGuide = () => {
       const fetchAgencyName = async () => {
         const { data } = await supabase
           .from("agency")
-          .select("companyName")
+          .select("nameTitle")
           .eq("key", key)
           .maybeSingle();
         
         if (data) {
-          setAgencyName(data.companyName || "");
+          setAgencyName(data.nameTitle || "");
         }
       };
       fetchAgencyName();
