@@ -9,6 +9,7 @@ import BusinessDetails from "./pages/BusinessDetails";
 import ValueGuide from "./pages/ValueGuide";
 import ConnectLocation from "./pages/ConnectLocation";
 import Success from "./pages/Success";
+import Welcome from "./pages/Welcome";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/value-guide" element={<ValueGuide />} />
           <Route path="/connect-location" element={<ConnectLocation />} />
           <Route path="/success" element={<Success />} />
+          <Route path="/welcome" element={<Welcome />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

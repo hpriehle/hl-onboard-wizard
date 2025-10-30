@@ -16,6 +16,8 @@ const BusinessDetails = () => {
   } = useToast();
   const [searchParams] = useSearchParams();
   const companyId = searchParams.get("companyId");
+  const key = searchParams.get("key");
+  const [agencyName, setAgencyName] = useState("");
   const [hasTwilio, setHasTwilio] = useState<"yes" | "no">("no");
   const [formData, setFormData] = useState({
     twilioSid: "",
@@ -37,40 +39,41 @@ const BusinessDetails = () => {
     jobTitle: ""
   });
   useEffect(() => {
-    if (!companyId) {
-      toast({
-        title: "Error",
-        description: "Missing company ID. Redirecting to start.",
-        variant: "destructive"
-      });
-      navigate("/");
-      return;
-    }
-
-    // Fetch agency data
     const fetchAgencyData = async () => {
-      console.log("Fetching agency data for companyId:", companyId);
-      
-      const { data, error } = await supabase
-        .from("agency")
-        .select("companyName, website, firstName, lastName, email, phone")
-        .eq("companyId", companyId)
-        .maybeSingle();
-
-      console.log("Supabase response:", { data, error });
-
-      if (error) {
-        console.error("Error fetching agency data:", error);
+      if (!companyId && !key) {
         toast({
-          title: "Warning",
-          description: "Could not load agency information",
-          variant: "destructive"
+          title: "Missing Required Parameter",
+          description: "Please start from the beginning",
+          variant: "destructive",
         });
+        navigate("/");
         return;
       }
 
-      if (data) {
-        console.log("Setting form data with:", data);
+      try {
+        let query = supabase
+          .from("agency")
+          .select("companyId, companyName, website, firstName, lastName, email, phone");
+
+        if (key) {
+          query = query.eq("key", key);
+        } else if (companyId) {
+          query = query.eq("companyId", companyId);
+        }
+
+        const { data, error } = await query.maybeSingle();
+
+        if (error || !data) {
+          toast({
+            title: "Agency Not Found",
+            description: "Could not find agency information",
+            variant: "destructive",
+          });
+          navigate("/");
+          return;
+        }
+
+        setAgencyName(data.companyName || "");
         setFormData(prev => ({
           ...prev,
           legalName: data.companyName || "",
@@ -80,13 +83,13 @@ const BusinessDetails = () => {
           contactEmail: data.email || "",
           contactPhone: data.phone || ""
         }));
-      } else {
-        console.log("No agency data found for companyId:", companyId);
+      } catch (error) {
+        console.error("Error fetching agency data:", error);
       }
     };
 
     fetchAgencyData();
-  }, [companyId, navigate, toast]);
+  }, [companyId, key, navigate, toast]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -102,6 +105,7 @@ const BusinessDetails = () => {
       const { data, error } = await supabase.functions.invoke('create-partner', {
         body: {
           companyId,
+          key,
           hasTwilio,
           ...formData
         }
@@ -117,14 +121,20 @@ const BusinessDetails = () => {
         return;
       }
 
-      console.log('Partner created:', data);
-      
-      toast({
-        title: "Information Saved",
-        description: "Partner record created successfully"
-      });
-      
-      navigate(`/value-guide?companyId=${companyId}&partnerId=${data.partner.id}`);
+      if (data?.partner) {
+        toast({
+          title: "Success!",
+          description: "Business details saved successfully",
+        });
+        
+        localStorage.setItem("onboarding-partnerId", data.partner.id);
+        
+        if (key) {
+          navigate(`/value-guide?key=${key}&partnerId=${data.partner.id}`);
+        } else {
+          navigate(`/value-guide?companyId=${companyId}&partnerId=${data.partner.id}`);
+        }
+      }
     } catch (error) {
       console.error('Unexpected error:', error);
       toast({
@@ -140,7 +150,13 @@ const BusinessDetails = () => {
       [field]: value
     }));
   };
-  return <OnboardingLayout currentStep={2} title="Business & Account Details" subtitle="Fill in your business subaccount information">
+  return <OnboardingLayout 
+      currentStep={key ? 1 : 2} 
+      title="Business & Account Details" 
+      subtitle="Fill in your business subaccount information"
+      customBrandName={key && agencyName ? agencyName : undefined}
+      isKeyFlow={!!key}
+    >
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Business Information Section */}
         <div className="space-y-4">

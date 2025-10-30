@@ -6,7 +6,8 @@ const corsHeaders = {
 };
 
 interface PartnerData {
-  companyId: string;
+  companyId?: string;
+  key?: string;
   twilioSid?: string;
   twilioToken?: string;
   legalName: string;
@@ -41,16 +42,52 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const partnerData: PartnerData = await req.json();
-    
-    console.log('Received partner creation request for companyId:', partnerData.companyId);
+    console.log('Received partner data:', { companyId: partnerData.companyId, key: partnerData.key });
 
-    // Validate that the agency with this companyId exists and was created recently (within 1 hour)
-    const { data: agency, error: agencyError } = await supabase
+    let resolvedCompanyId = partnerData.companyId;
+    
+    // If key is provided instead of companyId, look up the agency
+    if (partnerData.key && !partnerData.companyId) {
+      console.log('Looking up agency by key:', partnerData.key);
+      
+      const { data: agencyByKey, error: keyError } = await supabase
+        .from('agency')
+        .select('companyId')
+        .eq('key', partnerData.key)
+        .maybeSingle();
+      
+      if (keyError || !agencyByKey) {
+        console.error('Error fetching agency by key:', keyError);
+        return new Response(
+          JSON.stringify({ error: 'Invalid agency key' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      resolvedCompanyId = agencyByKey.companyId;
+      console.log('Resolved companyId from key:', resolvedCompanyId);
+    }
+    
+    if (!resolvedCompanyId) {
+      return new Response(
+        JSON.stringify({ error: 'Missing companyId or key' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate that the agency exists
+    // For key-based flow, skip the time constraint since the agency may be older
+    let agencyQuery = supabase
       .from('agency')
       .select('id, companyId, created_at')
-      .eq('companyId', partnerData.companyId)
-      .gt('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
-      .maybeSingle();
+      .eq('companyId', resolvedCompanyId);
+    
+    // Only add time constraint if using companyId (not key)
+    if (partnerData.companyId && !partnerData.key) {
+      agencyQuery = agencyQuery.gt('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString());
+    }
+    
+    const { data: agency, error: agencyError } = await agencyQuery.maybeSingle();
 
     if (agencyError) {
       console.error('Error fetching agency:', agencyError);
@@ -68,13 +105,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Generate a unique locationId (using companyId as base)
-    const locationId = `loc_${partnerData.companyId}`;
+    // Generate a unique locationId (using resolved companyId)
+    const locationId = resolvedCompanyId;
 
     // Prepare partner record
     const partnerRecord = {
       locationid: locationId,
-      companyid: partnerData.companyId,
+      companyid: resolvedCompanyId,
       name: partnerData.legalName,
       email: partnerData.contactEmail,
       phone: partnerData.contactPhone,

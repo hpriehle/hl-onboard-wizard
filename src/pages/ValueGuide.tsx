@@ -41,7 +41,9 @@ const ValueGuide = () => {
   } = useToast();
   const [searchParams] = useSearchParams();
   const companyId = searchParams.get("companyId");
+  const key = searchParams.get("key");
   const partnerId = searchParams.get("partnerId");
+  const [agencyName, setAgencyName] = useState("");
   const [currentSection, setCurrentSection] = useState(1);
   const [sectionResponses, setSectionResponses] = useState<Map<number, string>>(new Map());
   const [isRecording, setIsRecording] = useState(false);
@@ -50,10 +52,26 @@ const ValueGuide = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const voiceServiceRef = useRef<RealtimeVoiceService | null>(null);
   useEffect(() => {
-    if (!companyId) {
+    if (!companyId && !key) {
       navigate("/");
     }
-  }, [companyId, navigate]);
+    
+    // If using key, fetch agency name
+    if (key) {
+      const fetchAgencyName = async () => {
+        const { data } = await supabase
+          .from("agency")
+          .select("companyName")
+          .eq("key", key)
+          .maybeSingle();
+        
+        if (data) {
+          setAgencyName(data.companyName || "");
+        }
+      };
+      fetchAgencyName();
+    }
+  }, [companyId, key, navigate]);
   useEffect(() => {
     // Initialize Realtime Voice Service
     voiceServiceRef.current = new RealtimeVoiceService((transcript, isFinal) => {
@@ -147,12 +165,22 @@ const ValueGuide = () => {
       }
     }
 
-    // Navigate to OAuth link (to be provided)
-    navigate(`/connect-location?companyId=${companyId}&partnerId=${partnerId}`);
+    // Navigate based on flow type
+    if (key) {
+      navigate(`/welcome?key=${key}&partnerId=${partnerId}`);
+    } else {
+      navigate(`/connect-location?companyId=${companyId}&partnerId=${partnerId}`);
+    }
   };
   const currentSectionData = SECTIONS[currentSection - 1];
   const displayText = fullTranscript + (currentTranscript ? ' ' + currentTranscript : '');
-  return <OnboardingLayout currentStep={3} title="Value Guide" subtitle="Tell us about your business in your own words">
+  return <OnboardingLayout 
+      currentStep={key ? 2 : 3} 
+      title="Value Guide" 
+      subtitle="Tell us about your business in your own words"
+      customBrandName={key && agencyName ? agencyName : undefined}
+      isKeyFlow={!!key}
+    >
       <div className="space-y-6">
         {/* Browser Support Info - Removed since OpenAI Realtime works in all browsers */}
 

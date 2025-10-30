@@ -6,23 +6,31 @@ interface OnboardingLayoutProps {
   currentStep: number;
   title: string;
   subtitle: string;
+  customBrandName?: string;
+  isKeyFlow?: boolean;
 }
 
-const STEPS = ["Agency Info", "Business Details", "Value Guide", "Connect Location"];
+const AGENCY_STEPS = ["Agency Info", "Business Details", "Value Guide", "Connect Location"];
+const PARTNER_STEPS = ["Business Details", "Value Guide"];
 
 export const OnboardingLayout = ({ 
   children, 
   currentStep, 
   title, 
-  subtitle 
+  subtitle,
+  customBrandName,
+  isKeyFlow = false
 }: OnboardingLayoutProps) => {
+  const steps = isKeyFlow ? PARTNER_STEPS : AGENCY_STEPS;
+  const displayName = customBrandName || "Client Acquisition";
+  
   return (
     <div className="min-h-screen bg-gradient-subtle">
       {/* Header with Logo */}
       <div className="border-b bg-background/80 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            Client Acquisition
+            {displayName}
           </h1>
         </div>
       </div>
@@ -30,8 +38,8 @@ export const OnboardingLayout = ({
       {/* Progress Stepper */}
       <ProgressStepper 
         currentStep={currentStep} 
-        totalSteps={STEPS.length} 
-        steps={STEPS}
+        totalSteps={steps.length} 
+        steps={steps}
       />
 
       {/* Main Content */}
