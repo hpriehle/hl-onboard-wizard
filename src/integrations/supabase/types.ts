@@ -62,6 +62,7 @@ export type Database = {
           instantlyCampaignId: string | null
           key: string | null
           lastName: string | null
+          managed: boolean | null
           nameTitle: string | null
           "openAI-apiKey": string | null
           phone: string | null
@@ -100,6 +101,7 @@ export type Database = {
           instantlyCampaignId?: string | null
           key?: string | null
           lastName?: string | null
+          managed?: boolean | null
           nameTitle?: string | null
           "openAI-apiKey"?: string | null
           phone?: string | null
@@ -138,6 +140,7 @@ export type Database = {
           instantlyCampaignId?: string | null
           key?: string | null
           lastName?: string | null
+          managed?: boolean | null
           nameTitle?: string | null
           "openAI-apiKey"?: string | null
           phone?: string | null
@@ -304,6 +307,59 @@ export type Database = {
         }
         Relationships: []
       }
+      conversation_flows: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          draft_workflow_json: Json | null
+          id: string
+          language: string | null
+          locationid: string | null
+          locationId: string | null
+          name: string
+          partner_id: number | null
+          retell_agent_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          draft_workflow_json?: Json | null
+          id?: string
+          language?: string | null
+          locationid?: string | null
+          locationId?: string | null
+          name?: string
+          partner_id?: number | null
+          retell_agent_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          draft_workflow_json?: Json | null
+          id?: string
+          language?: string | null
+          locationid?: string | null
+          locationId?: string | null
+          name?: string
+          partner_id?: number | null
+          retell_agent_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_flows_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       downloads: {
         Row: {
           company_id: string | null
@@ -352,7 +408,7 @@ export type Database = {
           },
         ]
       }
-      ix_users_deprecated_backup: {
+      ix_users: {
         Row: {
           created_at: string
           email: string
@@ -497,6 +553,7 @@ export type Database = {
           is_sweet_spot: string | null
           job_title: string | null
           last_name: string | null
+          lead_cost: number | null
           lead_score: string | null
           lead_tier: string | null
           linkedin: string | null
@@ -556,6 +613,7 @@ export type Database = {
           is_sweet_spot?: string | null
           job_title?: string | null
           last_name?: string | null
+          lead_cost?: number | null
           lead_score?: string | null
           lead_tier?: string | null
           linkedin?: string | null
@@ -615,6 +673,7 @@ export type Database = {
           is_sweet_spot?: string | null
           job_title?: string | null
           last_name?: string | null
+          lead_cost?: number | null
           lead_score?: string | null
           lead_tier?: string | null
           linkedin?: string | null
@@ -1231,14 +1290,58 @@ export type Database = {
           },
         ]
       }
+      partner_onboarding: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          last_updated_at: string | null
+          partner_id: number
+          setup_type: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          last_updated_at?: string | null
+          partner_id: number
+          setup_type: string
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          last_updated_at?: string | null
+          partner_id?: number
+          setup_type?: string
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_onboarding_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partners: {
         Row: {
           access_token: string | null
+          active: boolean | null
           address: string | null
           business_context: string | null
+          business_type: string | null
           business_value_guide: string | null
           city: string | null
           "claude-apiKey": string | null
+          clientLastName: string | null
           clientName: string | null
           "commio-password": string | null
           "commio-username": string | null
@@ -1253,6 +1356,7 @@ export type Database = {
           dc_Secret: string | null
           dc_teamId: string | null
           "dc-onboardingDone": boolean | null
+          ein: string | null
           email: string | null
           email_1: string | null
           email_2: string | null
@@ -1262,8 +1366,11 @@ export type Database = {
           hl_calender_cs: string | null
           humanIntheLoop: boolean | null
           id: number
+          industry: string | null
           "instantly-apiKey": string | null
           "instantly-campaignId": string | null
+          job_title: string | null
+          llc_name: string | null
           locationid: string
           name: string | null
           onboardingDone: boolean | null
@@ -1285,8 +1392,10 @@ export type Database = {
           state: string | null
           text_ai_prompt: string | null
           timezone: string | null
+          twilio_A2pProfileBundleSid: string | null
           twilio_auth: string | null
           twilio_credentialId: string | null
+          twilio_CustomerProfileSid: string | null
           twilio_sid: string | null
           twilio_sipTrunk_id: string | null
           twilio_sipTrunk_originationId: string | null
@@ -1302,11 +1411,14 @@ export type Database = {
         }
         Insert: {
           access_token?: string | null
+          active?: boolean | null
           address?: string | null
           business_context?: string | null
+          business_type?: string | null
           business_value_guide?: string | null
           city?: string | null
           "claude-apiKey"?: string | null
+          clientLastName?: string | null
           clientName?: string | null
           "commio-password"?: string | null
           "commio-username"?: string | null
@@ -1321,6 +1433,7 @@ export type Database = {
           dc_Secret?: string | null
           dc_teamId?: string | null
           "dc-onboardingDone"?: boolean | null
+          ein?: string | null
           email?: string | null
           email_1?: string | null
           email_2?: string | null
@@ -1330,8 +1443,11 @@ export type Database = {
           hl_calender_cs?: string | null
           humanIntheLoop?: boolean | null
           id?: number
+          industry?: string | null
           "instantly-apiKey"?: string | null
           "instantly-campaignId"?: string | null
+          job_title?: string | null
+          llc_name?: string | null
           locationid: string
           name?: string | null
           onboardingDone?: boolean | null
@@ -1353,8 +1469,10 @@ export type Database = {
           state?: string | null
           text_ai_prompt?: string | null
           timezone?: string | null
+          twilio_A2pProfileBundleSid?: string | null
           twilio_auth?: string | null
           twilio_credentialId?: string | null
+          twilio_CustomerProfileSid?: string | null
           twilio_sid?: string | null
           twilio_sipTrunk_id?: string | null
           twilio_sipTrunk_originationId?: string | null
@@ -1370,11 +1488,14 @@ export type Database = {
         }
         Update: {
           access_token?: string | null
+          active?: boolean | null
           address?: string | null
           business_context?: string | null
+          business_type?: string | null
           business_value_guide?: string | null
           city?: string | null
           "claude-apiKey"?: string | null
+          clientLastName?: string | null
           clientName?: string | null
           "commio-password"?: string | null
           "commio-username"?: string | null
@@ -1389,6 +1510,7 @@ export type Database = {
           dc_Secret?: string | null
           dc_teamId?: string | null
           "dc-onboardingDone"?: boolean | null
+          ein?: string | null
           email?: string | null
           email_1?: string | null
           email_2?: string | null
@@ -1398,8 +1520,11 @@ export type Database = {
           hl_calender_cs?: string | null
           humanIntheLoop?: boolean | null
           id?: number
+          industry?: string | null
           "instantly-apiKey"?: string | null
           "instantly-campaignId"?: string | null
+          job_title?: string | null
+          llc_name?: string | null
           locationid?: string
           name?: string | null
           onboardingDone?: boolean | null
@@ -1421,8 +1546,10 @@ export type Database = {
           state?: string | null
           text_ai_prompt?: string | null
           timezone?: string | null
+          twilio_A2pProfileBundleSid?: string | null
           twilio_auth?: string | null
           twilio_credentialId?: string | null
+          twilio_CustomerProfileSid?: string | null
           twilio_sid?: string | null
           twilio_sipTrunk_id?: string | null
           twilio_sipTrunk_originationId?: string | null
@@ -1924,6 +2051,85 @@ export type Database = {
           },
         ]
       }
+      vm_recording_tokens: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          partner_id: number
+          phone_number: string | null
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          partner_id: number
+          phone_number?: string | null
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          partner_id?: number
+          phone_number?: string | null
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recording_tokens_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voicemail_recordings: {
+        Row: {
+          created_at: string | null
+          duration: number | null
+          filename: string
+          id: string
+          partner_id: number
+          script_number: number
+          storage_path: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration?: number | null
+          filename: string
+          id?: string
+          partner_id: number
+          script_number: number
+          storage_path: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          duration?: number | null
+          filename?: string
+          id?: string
+          partner_id?: number
+          script_number?: number
+          storage_path?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voicemail_recordings_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       campaign_analytics: {
@@ -1961,6 +2167,16 @@ export type Database = {
     }
     Functions: {
       create_secure_session: { Args: { company_slug: string }; Returns: string }
+      create_voicemail_recording_from_token: {
+        Args: {
+          p_duration: number
+          p_filename: string
+          p_script_number: number
+          p_storage_path: string
+          p_token: string
+        }
+        Returns: string
+      }
       get_agency_by_company_id: {
         Args: { company_id_param: string }
         Returns: {
@@ -2018,6 +2234,21 @@ export type Database = {
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_voicemail_status_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          pid: number
+          rec1_duration: number
+          rec1_id: string
+          rec2_duration: number
+          rec2_id: string
+          rec3_duration: number
+          rec3_id: string
+          rvm_1: string
+          rvm_2: string
+          rvm_3: string
+        }[]
       }
       handle_user_signup_with_location: {
         Args: {
