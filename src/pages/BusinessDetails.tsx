@@ -30,7 +30,8 @@ const BusinessDetails = () => {
     zip: "",
     businessWebsite: "",
     industry: "",
-    contactName: "",
+    contactFirstName: "",
+    contactLastName: "",
     contactEmail: "",
     contactPhone: "",
     jobTitle: ""
@@ -74,9 +75,8 @@ const BusinessDetails = () => {
           ...prev,
           legalName: data.companyName || "",
           businessWebsite: data.website || "",
-          contactName: data.firstName && data.lastName 
-            ? `${data.firstName} ${data.lastName}` 
-            : "",
+          contactFirstName: data.firstName || "",
+          contactLastName: data.lastName || "",
           contactEmail: data.email || "",
           contactPhone: data.phone || ""
         }));
@@ -231,11 +231,19 @@ const BusinessDetails = () => {
             Authorized Representative
           </h3>
 
-          <div>
-            <Label htmlFor="contactName">
-              Contact Name <span className="text-destructive">*</span>
-            </Label>
-            <Input id="contactName" value={formData.contactName} onChange={e => updateField("contactName", e.target.value)} required />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="contactFirstName">
+                First Name <span className="text-destructive">*</span>
+              </Label>
+              <Input id="contactFirstName" value={formData.contactFirstName} onChange={e => updateField("contactFirstName", e.target.value)} required />
+            </div>
+            <div>
+              <Label htmlFor="contactLastName">
+                Last Name <span className="text-destructive">*</span>
+              </Label>
+              <Input id="contactLastName" value={formData.contactLastName} onChange={e => updateField("contactLastName", e.target.value)} required />
+            </div>
           </div>
 
           <div>

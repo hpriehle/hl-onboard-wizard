@@ -19,7 +19,8 @@ interface PartnerData {
   zip: string;
   businessWebsite: string;
   industry: string;
-  contactName: string;
+  contactFirstName: string;
+  contactLastName: string;
   contactEmail: string;
   contactPhone: string;
   jobTitle: string;
@@ -89,6 +90,8 @@ Deno.serve(async (req) => {
       business_type: partnerData.businessType,
       industry: partnerData.industry,
       job_title: partnerData.jobTitle,
+      clientName: partnerData.contactFirstName,
+      clientLastName: partnerData.contactLastName,
       onboardingDone: false,
     };
 
