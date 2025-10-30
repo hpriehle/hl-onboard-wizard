@@ -1,12 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap, Shield, Rocket } from "lucide-react";
-
 const Index = () => {
   const navigate = useNavigate();
-
-  return (
-    <div className="min-h-screen bg-gradient-subtle">
+  return <div className="min-h-screen bg-gradient-subtle">
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center space-y-8">
@@ -15,18 +12,12 @@ const Index = () => {
             <h1 className="text-5xl sm:text-6xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
               Client Acquisition
             </h1>
-            <p className="text-xl text-muted-foreground">
-              Powerful integrations for your HighLevel agency
-            </p>
+            
           </div>
 
           {/* CTA Button */}
           <div className="pt-8">
-            <Button
-              onClick={() => navigate("/agency-info")}
-              size="lg"
-              className="bg-gradient-primary hover:opacity-90 text-white font-semibold px-8 py-6 text-lg shadow-glow"
-            >
+            <Button onClick={() => navigate("/agency-info")} size="lg" className="bg-gradient-primary hover:opacity-90 text-white font-semibold px-8 py-6 text-lg shadow-glow">
               Get Started
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
@@ -65,15 +56,11 @@ const Index = () => {
               <h3 className="text-lg font-semibold text-foreground mb-2">
                 Powerful Features
               </h3>
-              <p className="text-sm text-muted-foreground">
-                Advanced automation and workflow capabilities to scale your agency
-              </p>
+              <p className="text-sm text-muted-foreground">Advanced automation and workflow capabilities to scale</p>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
