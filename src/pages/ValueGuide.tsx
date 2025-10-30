@@ -165,6 +165,38 @@ const ValueGuide = () => {
       }
     }
 
+    // If key flow, call webhook to create account user
+    if (key && partnerId) {
+      try {
+        // Fetch partner data to get companyId and llc_name
+        const { data: partnerData } = await supabase
+          .from('partners')
+          .select('companyid, llc_name')
+          .eq('id', parseInt(partnerId))
+          .single();
+
+        if (partnerData) {
+          const webhookBody: Record<string, string> = {
+            name: partnerData.llc_name || "",
+            companyId: partnerData.companyid || "",
+            partnerId: partnerId,
+            key: key
+          };
+
+          // Call the webhook
+          await fetch('https://n8n.omnirasystems.com/webhook/omnira/create-account-user', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(webhookBody),
+          });
+        }
+      } catch (error) {
+        console.error('Error calling webhook:', error);
+      }
+    }
+
     // Navigate based on flow type
     if (key) {
       navigate(`/welcome?key=${key}&partnerId=${partnerId}`);
