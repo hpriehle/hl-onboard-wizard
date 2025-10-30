@@ -142,64 +142,6 @@ const BusinessDetails = () => {
   };
   return <OnboardingLayout currentStep={2} title="Business & Account Details" subtitle="Fill in your business subaccount information">
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Twilio Section */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-foreground border-b pb-2">Twilio Integration</h3>
-
-          <div>
-            <Label className="text-base mb-3 block">Do you have a Twilio account?</Label>
-            <RadioGroup value={hasTwilio} onValueChange={value => setHasTwilio(value as "yes" | "no")}>
-              <div className="flex items-center space-x-2 mb-2">
-                <RadioGroupItem value="yes" id="twilio-yes" />
-                <Label htmlFor="twilio-yes" className="font-normal cursor-pointer">
-                  Yes, I have Twilio
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="no" id="twilio-no" />
-                <Label htmlFor="twilio-no" className="font-normal cursor-pointer">
-                  No, I don't have Twilio
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          {hasTwilio === "yes" && <div className="bg-accent p-4 rounded-lg space-y-4 animate-fade-in">
-              <div>
-                <Label htmlFor="twilioSid">
-                  Twilio Account SID <span className="text-destructive">*</span>
-                </Label>
-                <Input 
-                  id="twilioSid" 
-                  value={formData.twilioSid} 
-                  onChange={e => updateField("twilioSid", e.target.value)} 
-                  placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
-                  required={hasTwilio === "yes"}
-                  autoComplete="off"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="twilioToken">
-                  Twilio Auth Token <span className="text-destructive">*</span>
-                </Label>
-                <Input 
-                  id="twilioToken" 
-                  type="text"
-                  value={formData.twilioToken} 
-                  onChange={e => updateField("twilioToken", e.target.value)} 
-                  placeholder="Enter your Twilio Auth Token" 
-                  required={hasTwilio === "yes"}
-                  autoComplete="off"
-                />
-                <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                  <Info className="w-4 h-4" />
-                  <span>Your auth token will be encrypted and stored securely</span>
-                </div>
-              </div>
-            </div>}
-        </div>
-
         {/* Business Information Section */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-foreground border-b pb-2">
