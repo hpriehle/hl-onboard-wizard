@@ -22,6 +22,8 @@ const ConnectLocation = () => {
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [createdSubaccountName, setCreatedSubaccountName] = useState("");
   const [showInstructions, setShowInstructions] = useState(false);
+  const [creationFailed, setCreationFailed] = useState(false);
+  const [manualLinkClicked, setManualLinkClicked] = useState(false);
 
   // Fetch partner data
   const { data: partnerData } = useQuery({
@@ -38,6 +40,23 @@ const ConnectLocation = () => {
       return data;
     },
     enabled: !!partnerId,
+  });
+
+  // Fetch company data for whiteLabelDomain
+  const { data: companyData } = useQuery({
+    queryKey: ["company", companyId],
+    queryFn: async () => {
+      if (!companyId) return null;
+      const { data, error } = await supabase
+        .from("agency")
+        .select("whiteLabelDomain")
+        .eq("companyId", companyId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId,
   });
 
   // Set default subaccount name when partner data loads
@@ -81,8 +100,16 @@ const ConnectLocation = () => {
         throw new Error("Failed to create subaccount");
       }
 
-      setCreatedSubaccountName(subaccountName);
-      setShowInstructions(true);
+      const data = await response.json();
+      
+      // Check if creation was successful
+      if (data[0]?.success === true) {
+        setCreatedSubaccountName(subaccountName);
+        setShowInstructions(true);
+      } else {
+        // Creation failed, show manual creation flow
+        setCreationFailed(true);
+      }
     } catch (error) {
       console.error("Error creating subaccount:", error);
       toast({
@@ -92,6 +119,13 @@ const ConnectLocation = () => {
       });
     } finally {
       setIsCreatingAccount(false);
+    }
+  };
+
+  const handleManualCreationLink = () => {
+    if (companyData?.whiteLabelDomain) {
+      window.open(`${companyData.whiteLabelDomain}/accounts/search?s_type=vertical&l_type=saas`, '_blank');
+      setManualLinkClicked(true);
     }
   };
 
@@ -187,7 +221,7 @@ const ConnectLocation = () => {
         )}
 
         {/* Show subaccount creation form if A2P is yes and instructions not shown yet */}
-        {hasA2PNumbers === "yes" && !showInstructions && (
+        {hasA2PNumbers === "yes" && !showInstructions && !creationFailed && (
           <>
             <div className="bg-muted p-6 rounded-lg space-y-6">
               <p className="text-foreground">
@@ -227,6 +261,30 @@ const ConnectLocation = () => {
               </div>
             </div>
           </>
+        )}
+
+        {/* Show manual creation flow if automatic creation failed */}
+        {hasA2PNumbers === "yes" && creationFailed && !manualLinkClicked && (
+          <div className="bg-muted p-6 rounded-lg space-y-4">
+            <p className="text-foreground">
+              There was an issue creating your new account automatically.
+            </p>
+            <Button 
+              onClick={handleManualCreationLink}
+              variant="outline"
+              className="w-full"
+            >
+              Click here to Create a New Subaccount
+            </Button>
+          </div>
+        )}
+
+        {/* Show connect button after manual link is clicked */}
+        {hasA2PNumbers === "yes" && creationFailed && manualLinkClicked && (
+          <Button onClick={handleConnect} className="w-full bg-gradient-primary hover:opacity-90 text-white font-semibold py-6 text-lg shadow-glow">
+            <Link2 className="w-5 h-5 mr-2" />
+            Install in New HighLevel Account
+          </Button>
         )}
 
         {/* Show instructions after subaccount creation */}
