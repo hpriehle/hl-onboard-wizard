@@ -51,9 +51,13 @@ const ConnectLocation = () => {
         .from("agency")
         .select("whiteLabelDomain")
         .eq("companyId", companyId)
-        .single();
+        .maybeSingle();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching company data:", error);
+        throw error;
+      }
+      console.log("Company data fetched:", data);
       return data;
     },
     enabled: !!companyId,
@@ -123,10 +127,15 @@ const ConnectLocation = () => {
   };
 
   const handleManualCreationLink = () => {
-    if (companyData?.whiteLabelDomain) {
-      window.open(`${companyData.whiteLabelDomain}/accounts/search?s_type=vertical&l_type=saas`, '_blank');
-      setManualLinkClicked(true);
-    }
+    console.log("Manual creation link clicked. Company data:", companyData);
+    console.log("White label domain:", companyData?.whiteLabelDomain);
+    
+    const domain = companyData?.whiteLabelDomain || 'https://app.gohighlevel.com';
+    const url = `${domain}/accounts/search?s_type=vertical&l_type=saas`;
+    
+    console.log("Opening URL:", url);
+    window.open(url, '_blank');
+    setManualLinkClicked(true);
   };
 
   const handleConnect = () => {
