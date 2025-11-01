@@ -10,6 +10,7 @@ import ValueGuide from "./pages/ValueGuide";
 import ConnectLocation from "./pages/ConnectLocation";
 import Success from "./pages/Success";
 import Welcome from "./pages/Welcome";
+import RedirectAgency from "./pages/RedirectAgency";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/connect-location" element={<ConnectLocation />} />
           <Route path="/success" element={<Success />} />
           <Route path="/welcome" element={<Welcome />} />
+          <Route path="/redirect-agency" element={<RedirectAgency />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
