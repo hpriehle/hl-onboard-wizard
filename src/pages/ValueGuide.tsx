@@ -13,27 +13,78 @@ interface Section {
   description: string;
   suggestedQuestions: string[];
 }
-const SECTIONS: Section[] = [{
-  id: 1,
-  title: "Why You Give a Damn (Genuine Curiosity)",
-  description: "Share your genuine connection to the business owners you serve",
-  suggestedQuestions: ["What personal experience makes you care about these business owners?", "What specific observation about their business triggered your outreach?", "What future do you genuinely want for them?"]
-}, {
-  id: 2,
-  title: "Why You're Not Some Random Person (Authority Building)",
-  description: "Establish your credibility and expertise",
-  suggestedQuestions: ["What gives you the right to contact them?", "What unique access/insight do you have?", "What track record proves you deliver?"]
-}, {
-  id: 3,
-  title: "Why You're the Smartest Person in Their Orbit Right Now",
-  description: "Demonstrate your unique knowledge and perspective",
-  suggestedQuestions: ["What do you know that they don't?", "What pattern have you spotted they're missing?", "What's your contrarian insight?"]
-}, {
-  id: 4,
-  title: "Why They'd Be Crazy Not to Listen",
-  description: "Create urgency and demonstrate immediate value",
-  suggestedQuestions: ["What's happening RIGHT NOW that creates urgency?", "What specific cost of inaction exists?", "What's the smallest ask that gives massive value?"]
-}];
+const SECTIONS: Section[] = [
+  {
+    id: 1,
+    title: "Who You Are & What You Do",
+    description: "Your AI identity and business context",
+    suggestedQuestions: [
+      "What's your AI agent's name and role? (e.g., 'Sarah, Business Development Associate')",
+      "What's your company name and what do you do in 2-3 sentences?",
+      "How does your AI relate to your business? (e.g., 'I work with business owners to...')"
+    ]
+  },
+  {
+    id: 2,
+    title: "Why You Give a Damn (Genuine Curiosity)",
+    description: "Your authentic connection and authority",
+    suggestedQuestions: [
+      "Why do you personally care about helping these business owners?",
+      "What credentials or track record prove you're legitimate?",
+      "What makes you uniquely qualified to help them?"
+    ]
+  },
+  {
+    id: 3,
+    title: "Why They'd Be Crazy Not to Listen (Urgency)",
+    description: "The opportunity and timing",
+    suggestedQuestions: [
+      "What's happening RIGHT NOW that creates urgency?",
+      "What do you know that they're missing?",
+      "What's the dream outcome you can help them achieve?"
+    ]
+  },
+  {
+    id: 4,
+    title: "Who You're Talking To & What They Care About",
+    description: "Target audience psychology and motivations",
+    suggestedQuestions: [
+      "Describe your ideal prospect (demographics + psychographics)",
+      "What do they care about, fear, and want?",
+      "How do they make decisions? (fast/slow, emotional/logical, etc.)"
+    ]
+  },
+  {
+    id: 5,
+    title: "How to Build Trust & Add Value",
+    description: "Conversation tactics and personalization strategy",
+    suggestedQuestions: [
+      "List 4-6 specific ways your AI should build trust in conversations",
+      "List 4-6 ways to add immediate value in each message",
+      "When should your AI use business name, location, revenue, or industry data?"
+    ]
+  },
+  {
+    id: 6,
+    title: "Campaign Goal & Success Criteria",
+    description: "What you're trying to achieve and how conversations should end",
+    suggestedQuestions: [
+      "What's the single goal of this campaign? (e.g., 'Book 20-min calls')",
+      "When is a conversation successfully complete?",
+      "When should the AI stop messaging after failure?"
+    ]
+  },
+  {
+    id: 7,
+    title: "AI Behavior & Edge Cases",
+    description: "How your AI should act and handle objections",
+    suggestedQuestions: [
+      "Describe your AI's personality: formality level, persistence style, empathy level",
+      "List 3-5 common objections and how to respond to each",
+      "List 2-3 unusual requests and how to handle them"
+    ]
+  }
+];
 const ValueGuide = () => {
   const navigate = useNavigate();
   const {
