@@ -178,6 +178,17 @@ const ValueGuide = () => {
       }
     }
   };
+  const handleBack = () => {
+    if (currentSection > 1) {
+      // Save current section response if there's content
+      if (fullTranscript.trim()) {
+        setSectionResponses(prev => new Map(prev).set(currentSection, fullTranscript.trim()));
+      }
+      // Move to previous section
+      setCurrentSection(prev => prev - 1);
+    }
+  };
+
   const handleNext = () => {
     const trimmedTranscript = fullTranscript.trim();
     if (!trimmedTranscript) {
@@ -326,11 +337,29 @@ const ValueGuide = () => {
             <Textarea value={displayText} onChange={e => setFullTranscript(e.target.value)} placeholder={isRecording ? "Listening... speak now" : "Click the microphone to start recording, or type your response here..."} className="min-h-[200px] text-base" disabled={isRecording} />
           </div>
 
-          {/* Navigation Button */}
-          <Button onClick={handleNext} disabled={!fullTranscript.trim() || isRecording} size="lg" className="w-full text-lg py-6 bg-primary hover:bg-primary/90">
-            {currentSection === SECTIONS.length ? "Submit & Continue" : "Next Section"}
-            <ArrowRight className="w-5 h-5 ml-2" />
-          </Button>
+          {/* Navigation Buttons */}
+          <div className="flex gap-3">
+            {currentSection > 1 && (
+              <Button 
+                onClick={handleBack} 
+                disabled={isRecording}
+                size="lg" 
+                variant="outline"
+                className="text-lg py-6 flex-1"
+              >
+                Back
+              </Button>
+            )}
+            <Button 
+              onClick={handleNext} 
+              disabled={!fullTranscript.trim() || isRecording} 
+              size="lg" 
+              className={`text-lg py-6 bg-primary hover:bg-primary/90 ${currentSection > 1 ? 'flex-1' : 'w-full'}`}
+            >
+              {currentSection === SECTIONS.length ? "Submit & Continue" : "Next Section"}
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          </div>
 
           <p className="text-sm text-center text-muted-foreground">
             Section {currentSection} of {SECTIONS.length}
