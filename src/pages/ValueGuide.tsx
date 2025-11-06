@@ -227,6 +227,34 @@ const ValueGuide = () => {
       }
     }
 
+    // Send value guide data to webhook
+    if (partnerId) {
+      try {
+        const { data: partnerData } = await supabase
+          .from('partners')
+          .select('companyid')
+          .eq('id', parseInt(partnerId))
+          .single();
+
+        const webhookPayload = {
+          key: key || undefined,
+          companyId: partnerData?.companyid || companyId || undefined,
+          partnerId: partnerId,
+          businessValueGuide: responsesObject
+        };
+
+        await fetch('https://n8n.omnirasystems.com/webhook/06c0f2d9-e518-45e2-8951-526c004025ff', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(webhookPayload),
+        });
+      } catch (error) {
+        console.error('Error sending to webhook:', error);
+      }
+    }
+
     // If key flow, call webhook to create account user
     if (key && partnerId) {
       try {
