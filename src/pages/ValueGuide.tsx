@@ -19,9 +19,9 @@ const SECTIONS: Section[] = [
     title: "Who You Are & What You Do",
     description: "Your AI identity and business context",
     suggestedQuestions: [
-      "What's your AI agent's name and role? (e.g., 'Sarah, Business Development Associate')",
-      "What's your company name and what do you do in 2-3 sentences?",
-      "How does your AI relate to your business? (e.g., 'I work with business owners to...')"
+      "What personal experience makes you care about these business owners?",
+      "What specific observation about their business triggered your outreach?",
+      "What future do you genuinely want for them?"
     ]
   },
   {
