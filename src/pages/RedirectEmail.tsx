@@ -1,6 +1,5 @@
 const RedirectEmail = () => {
-  return (
-    <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
+  return <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
       <div className="max-w-2xl w-full bg-card rounded-lg shadow-lg border p-8 sm:p-12">
         <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-2 text-center">
           Welcome to Omnira
@@ -26,7 +25,7 @@ const RedirectEmail = () => {
             </li>
             <li className="flex items-start">
               <span className="font-semibold text-primary mr-2">2.</span>
-              <span>Look for an email from Omnira</span>
+              <span>Look for an email from Ninu Digital  </span>
             </li>
             <li className="flex items-start">
               <span className="font-semibold text-primary mr-2">3.</span>
@@ -39,8 +38,6 @@ const RedirectEmail = () => {
           If you don't see the email within a few minutes, please check your spam folder.
         </p>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default RedirectEmail;
