@@ -12,6 +12,7 @@ import Success from "./pages/Success";
 import Welcome from "./pages/Welcome";
 import RedirectAgency from "./pages/RedirectAgency";
 import RedirectEmail from "./pages/RedirectEmail";
+import RedirectLogin from "./pages/RedirectLogin";
 import AccountSetup from "./pages/AccountSetup";
 import NotFound from "./pages/NotFound";
 
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/welcome" element={<Welcome />} />
           <Route path="/redirect-agency" element={<RedirectAgency />} />
           <Route path="/redirect-email" element={<RedirectEmail />} />
+          <Route path="/redirect-login" element={<RedirectLogin />} />
           <Route path="/setup" element={<AccountSetup />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
