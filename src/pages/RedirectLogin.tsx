@@ -9,9 +9,20 @@ const RedirectLogin = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   
-  const email = searchParams.get("email") || "";
-  const token = searchParams.get("token") || "";
-  const url = searchParams.get("url") || "";
+  // Parse URL params from both query string and hash fragment
+  const getParam = (name: string) => {
+    const queryParam = searchParams.get(name);
+    if (queryParam) return queryParam;
+    
+    // Check hash fragment for additional params
+    const hash = window.location.hash;
+    const hashParams = new URLSearchParams(hash.substring(hash.indexOf('&') + 1));
+    return hashParams.get(name) || "";
+  };
+  
+  const email = getParam("email");
+  const token = getParam("token");
+  const url = getParam("url");
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
