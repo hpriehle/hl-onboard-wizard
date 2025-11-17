@@ -2222,6 +2222,7 @@ export type Database = {
           status: string | null
           stripe_customer_id: string | null
           stripe_price_id: string | null
+          stripe_session_id: string | null
           stripe_subscription_id: string | null
           subscription_status: string | null
           twilio_subaccount_sid: string | null
@@ -2244,6 +2245,7 @@ export type Database = {
           status?: string | null
           stripe_customer_id?: string | null
           stripe_price_id?: string | null
+          stripe_session_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
           twilio_subaccount_sid?: string | null
@@ -2266,6 +2268,7 @@ export type Database = {
           status?: string | null
           stripe_customer_id?: string | null
           stripe_price_id?: string | null
+          stripe_session_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
           twilio_subaccount_sid?: string | null
