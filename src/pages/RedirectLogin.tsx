@@ -61,7 +61,7 @@ const RedirectLogin = () => {
             <div className="flex gap-2">
               <Input
                 id="password"
-                type="text"
+                type="password"
                 value={token}
                 readOnly
                 className="flex-1"
