@@ -2993,6 +2993,129 @@ export type Database = {
           },
         ]
       }
+      unenriched_leads: {
+        Row: {
+          city: string | null
+          company_annual_revenue: string | null
+          company_annual_revenue_clean: string | null
+          company_city: string | null
+          company_country: string | null
+          company_description: string | null
+          company_domain: string | null
+          company_founded_year: number | null
+          company_full_address: string | null
+          company_linkedin: string | null
+          company_linkedin_uid: string | null
+          company_name: string | null
+          company_phone: string | null
+          company_postal_code: string | null
+          company_size: string | null
+          company_state: string | null
+          company_street_address: string | null
+          company_technologies: string | null
+          company_total_funding: string | null
+          company_total_funding_clean: string | null
+          company_website: string | null
+          country: string | null
+          created_at: string | null
+          email: string | null
+          first_name: string | null
+          full_name: string | null
+          functional_level: string | null
+          headline: string | null
+          id: string
+          industry: string | null
+          job_title: string | null
+          keywords: string | null
+          last_name: string | null
+          linkedin: string | null
+          personal_email: string | null
+          seniority_level: string | null
+          state: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          city?: string | null
+          company_annual_revenue?: string | null
+          company_annual_revenue_clean?: string | null
+          company_city?: string | null
+          company_country?: string | null
+          company_description?: string | null
+          company_domain?: string | null
+          company_founded_year?: number | null
+          company_full_address?: string | null
+          company_linkedin?: string | null
+          company_linkedin_uid?: string | null
+          company_name?: string | null
+          company_phone?: string | null
+          company_postal_code?: string | null
+          company_size?: string | null
+          company_state?: string | null
+          company_street_address?: string | null
+          company_technologies?: string | null
+          company_total_funding?: string | null
+          company_total_funding_clean?: string | null
+          company_website?: string | null
+          country?: string | null
+          created_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          functional_level?: string | null
+          headline?: string | null
+          id?: string
+          industry?: string | null
+          job_title?: string | null
+          keywords?: string | null
+          last_name?: string | null
+          linkedin?: string | null
+          personal_email?: string | null
+          seniority_level?: string | null
+          state?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          company_annual_revenue?: string | null
+          company_annual_revenue_clean?: string | null
+          company_city?: string | null
+          company_country?: string | null
+          company_description?: string | null
+          company_domain?: string | null
+          company_founded_year?: number | null
+          company_full_address?: string | null
+          company_linkedin?: string | null
+          company_linkedin_uid?: string | null
+          company_name?: string | null
+          company_phone?: string | null
+          company_postal_code?: string | null
+          company_size?: string | null
+          company_state?: string | null
+          company_street_address?: string | null
+          company_technologies?: string | null
+          company_total_funding?: string | null
+          company_total_funding_clean?: string | null
+          company_website?: string | null
+          country?: string | null
+          created_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          functional_level?: string | null
+          headline?: string | null
+          id?: string
+          industry?: string | null
+          job_title?: string | null
+          keywords?: string | null
+          last_name?: string | null
+          linkedin?: string | null
+          personal_email?: string | null
+          seniority_level?: string | null
+          state?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_devices: {
         Row: {
           created_at: string
